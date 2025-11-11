@@ -65,7 +65,7 @@ class AddContactMethodDialog extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         minimumSize: const Size(double.infinity, 50),
       ),
-      child: Text(
+      child: Text( 
         text,
         style: const TextStyle(color: Color(0xFF6A1B9A), fontSize: 16),
       ),
