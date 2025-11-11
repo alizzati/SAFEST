@@ -1,28 +1,34 @@
 import 'package:flutter/material.dart';
+import 'screens/sign_in_screen.dart';
+import 'screens/sign_up_screen.dart';
 import 'screens/profile_screen.dart';
 
 void main() {
-  runApp(const SafestApp());
+  runApp(const MyApp());
 }
 
-class SafestApp extends StatelessWidget {
-  const SafestApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SAFEST App',
-      debugShowCheckedModeBanner: false,
+      title: 'Safest',
       theme: ThemeData(
-        fontFamily: 'Poppins',
-        primarySwatch: Colors.deepPurple,
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.deepPurple,
-          foregroundColor: Colors.white,
+        fontFamily: 'OpenSans',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF512DA8),
         ),
+        useMaterial3: true,
       ),
-      home: const ProfileScreen(),
+      debugShowCheckedModeBanner: false,
+      // Setup routes
+      initialRoute: '/signup', // Screen pertama yang muncul
+      routes: {
+        '/signin': (context) => const ProfileScreen(),
+        '/signup': (context) => const SignUpScreen(),
+        '/profile': (context) => const SignInScreen(),
+      },
     );
   }
 }
