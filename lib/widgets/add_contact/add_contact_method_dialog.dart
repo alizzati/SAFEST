@@ -59,7 +59,7 @@ class AddContactMethodDialog extends StatelessWidget {
   Widget _buildModeButton(BuildContext context, String text, AddContactMode mode) {
     return ElevatedButton(
       onPressed: () => _showFormDialog(context, mode),
-      style: ElevatedButton.styleFrom(
+      style: ElevatedButton.styleFrom( 
         backgroundColor: Colors.white,
         side: const BorderSide(color: Color(0xFF6A1B9A), width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

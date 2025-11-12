@@ -3,7 +3,7 @@ import 'package:safest/models/emergency_contact.dart';
 
 // Widget untuk Contact Card
 class ContactCard extends StatelessWidget {
-  final EmergencyContact contact;
+  final EmergencyContact contact; 
 
   const ContactCard({super.key, required this.contact});
 

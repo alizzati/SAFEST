@@ -4,7 +4,7 @@ import 'package:safest/widgets/profile/contact_detail_dialog.dart';
 import 'package:safest/models/emergency_contact.dart';
 import 'package:safest/services/contact_service.dart';
 import 'package:safest/widgets/profile/contact_card.dart';
-import 'package:flutter/services.dart'; 
+import 'package:flutter/services.dart';  
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

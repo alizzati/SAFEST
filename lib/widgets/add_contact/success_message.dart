@@ -31,7 +31,7 @@ class SuccessDialog extends StatelessWidget {
               ),
               child: Icon(Icons.check, color: Colors.lightGreen, size: 30),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 15), 
             Text(
               'Emergency contact has been added successfully!',
               textAlign: TextAlign.center,

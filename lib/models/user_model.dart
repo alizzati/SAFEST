@@ -3,7 +3,7 @@ import 'contact_model.dart';
 class User {
   String id;
   String name;
-  String avatarUrl;
+  String avatarUrl; 
   List<Contact> contacts;
 
   User({

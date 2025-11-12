@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 enum AddContactMode { phone, id }
 
 class ContactService {
-  // Simulasi endpoint URL (Ganti dengan URL API Anda)
+  // Simulasi endpoint URL (Ganti dengan URL API Anda) 
   static const String _baseUrl = 'https://api.yourdomain.com/v1/contacts';
 
   // Daftar kontak saat ini (Simulasi data di memory)

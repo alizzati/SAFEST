@@ -3,7 +3,7 @@ import '../models/contact_model.dart';
 
 class ContactCard extends StatelessWidget {
   final Contact contact;
-
+ 
   const ContactCard({super.key, required this.contact});
 
   @override

@@ -1,5 +1,5 @@
 import 'api_service.dart';
-import '../models/user_model.dart';
+import '../models/user_model.dart'; 
 
 class UserService {
   final api = ApiService();

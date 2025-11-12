@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
-import '../utils/validators.dart';
+import '../utils/validators.dart'; 
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});

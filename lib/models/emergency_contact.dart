@@ -2,7 +2,7 @@ class EmergencyContact {
   final String name;
   final String relationship;
   final String avatarUrl;
-  final String? phoneNumber;
+  final String? phoneNumber; 
   final String? userId;
 
   EmergencyContact({

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
-  final Widget body;
+  final Widget body; 
 
   const AppScaffold({
     super.key,

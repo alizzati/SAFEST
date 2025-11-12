@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ModeButton extends StatelessWidget {
   final String text;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback onTap; 
 
   const ModeButton({
     super.key,
