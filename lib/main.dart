@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:safest/screens/profile_screen.dart';
+import 'screens/sign_in_screen.dart';
+import 'screens/sign_up_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,28 +13,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Emergency Contact App',
-      debugShowCheckedModeBanner: false,
+      title: 'Safest',
       theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        scaffoldBackgroundColor: Colors.grey[100],
+        fontFamily: 'OpenSans',
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF512DA8)),
         useMaterial3: true,
       ),
-      home: const ProfileScreen(),
+      debugShowCheckedModeBanner: false,
+      // Setup routes
+      initialRoute: '/signup', // Screen pertama yang muncul
+      routes: {
+        '/signin': (context) => const SignInScreen(),
+        '/signup': (context) => const SignUpScreen(),
+        '/profile': (context) => const ProfileScreen(),
+      },
     );
   }
-}class EmergencyContact {
-  final String name;
-  final String relationship;
-  final String avatarUrl;
-  final String? phoneNumber;
-  final String? userId;
-
-  EmergencyContact({
-    required this.name,
-    required this.relationship,
-    required this.avatarUrl,
-    this.phoneNumber,
-    this.userId,
-  });
 }
