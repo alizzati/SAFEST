@@ -25,9 +25,9 @@ class MyApp extends StatelessWidget {
       // Setup routes
       initialRoute: '/signup', // Screen pertama yang muncul
       routes: {
-        '/signin': (context) => const ProfileScreen(),
+        '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
-        '/profile': (context) => const SignInScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
