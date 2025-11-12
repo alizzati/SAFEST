@@ -12,7 +12,7 @@ class ContactDetailHeader extends StatelessWidget {
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(15),
       ),
-      child: Column(
+      child: Column( 
         children: [
           // Avatar
           Container(
