@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:safest/config/routes.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
-import '../utils/validators.dart'; 
+import '../utils/validators.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -29,15 +31,19 @@ class _SignInScreenState extends State<SignInScreen> {
   // Fungsi untuk handle sign in
   void _handleSignIn() {
     if (_formKey.currentState!.validate()) {
-      // Semua validasi passed
-      // TODO: Implement sign in logic
+      // Semua validasi lolos → tampilkan snackbar lalu arahkan ke home
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Signing in...'),
           backgroundColor: Color(0xFF512DA8),
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 1),
         ),
       );
+
+      // ✅ Navigasi ke halaman home/profile setelah delay sedikit
+      Future.delayed(const Duration(milliseconds: 800), () {
+        context.go(AppRoutes.home); // langsung ke halaman utama
+      });
     }
   }
 
@@ -55,9 +61,7 @@ class _SignInScreenState extends State<SignInScreen> {
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Container(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Center(
                 child: Container(
                   width: maxWidth,
@@ -106,7 +110,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             labelText: 'Email Address',
                             labelStyle: TextStyle(
                               fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                              fontSize: isLargeScreen
+                                  ? 14
+                                  : screenWidth * 0.038,
                               color: const Color(0xFF7E7E7E),
                               fontWeight: FontWeight.w400,
                             ),
@@ -170,7 +176,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             labelText: 'Password',
                             labelStyle: TextStyle(
                               fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                              fontSize: isLargeScreen
+                                  ? 14
+                                  : screenWidth * 0.038,
                               color: const Color(0xFF7E7E7E),
                             ),
                             errorStyle: TextStyle(
@@ -254,7 +262,9 @@ class _SignInScreenState extends State<SignInScreen> {
                               'Forgot Password?',
                               style: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
+                                fontSize: isLargeScreen
+                                    ? 13
+                                    : screenWidth * 0.035,
                                 color: const Color(0xFF512DA8),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -286,7 +296,9 @@ class _SignInScreenState extends State<SignInScreen> {
                               'or',
                               style: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
+                                fontSize: isLargeScreen
+                                    ? 13
+                                    : screenWidth * 0.035,
                                 color: const Color(0xFF7E7E7E),
                               ),
                             ),
@@ -320,7 +332,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                 ),
                               ),
                               elevation: 0,
-                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.04,
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -336,7 +350,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                   'Continue with Google',
                                   style: TextStyle(
                                     fontFamily: 'OpenSans',
-                                    fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                                    fontSize: isLargeScreen
+                                        ? 14
+                                        : screenWidth * 0.038,
                                     fontWeight: FontWeight.normal,
                                     color: const Color(0xFF0F0F0F),
                                   ),
@@ -356,22 +372,29 @@ class _SignInScreenState extends State<SignInScreen> {
                               "Don't have an account? ",
                               style: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
+                                fontSize: isLargeScreen
+                                    ? 13
+                                    : screenWidth * 0.035,
                                 color: const Color(0xFF512DA8),
                               ),
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.pushReplacementNamed(context, '/signup');
+                                context.push(AppRoutes.signUp);
                               },
+
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
                               ),
                               child: Text(
                                 'Sign Up',
                                 style: TextStyle(
                                   fontFamily: 'OpenSans',
-                                  fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
+                                  fontSize: isLargeScreen
+                                      ? 13
+                                      : screenWidth * 0.035,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF512DA8),
                                 ),
