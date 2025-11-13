@@ -134,7 +134,7 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen> with SingleTi
             _buildCallButton(),
             
             // Jarak yang cukup untuk membatasi efek pulsing
-            const SizedBox(height: 40), 
+            const SizedBox(height: 25), 
 
             // Daftar Status Dinamis (Stabil)
             SizedBox(
@@ -190,7 +190,7 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen> with SingleTi
                       spreadRadius: 10 * _pulsingAnimation.value, 
                     ),
                     const BoxShadow(
-                      color: Color(0xFFB71C1C),
+                      color: Color.fromARGB(255, 237, 127, 119),
                       offset: Offset(0, 3),
                       blurRadius: 5,
                     ),
@@ -207,9 +207,9 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen> with SingleTi
                     ),
                     child: Center(
                       child: Image.asset(
-                        'assets/images/image_63e8bd.png', 
-                        width: 75,
-                        height: 75,
+                        'assets/images/call_sos.png', 
+                        width: 88,
+                        height: 88,
                         color: Colors.white, 
                       ),
                     ),

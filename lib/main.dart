@@ -24,13 +24,13 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       // Setup routes
-      // initialRoute: '/signup', // Screen pertama yang muncul
-      initialRoute: '/emergency (sos)',
+      initialRoute: '/signup', // Screen pertama yang muncul
+      // initialRoute: '/emergency',
       routes: {
         '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
         '/profile': (context) => const ProfileScreen(),
-        '/emergency (sos)': (context) => const EmergencyCallScreen(), // Target popUntil
+        '/emergency': (context) => const EmergencyCallScreen(), // Target popUntil
         '/calling': (context) => const CallingScreen(),
         '/ongoing_call': (context) => const OngoingCallScreen(),
       },

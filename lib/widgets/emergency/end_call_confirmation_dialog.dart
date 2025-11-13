@@ -83,45 +83,53 @@ class EndCallConfirmationDialog extends StatelessWidget {
 
 // --- Fungsi untuk Popover "Hold the button" (Dipanggil dari EmergencyCallScreen) ---
 // (File: lib/widgets/emergency/end_call_confirmation_dialog.dart)
+
 // ... (EndCallConfirmationDialog tetap sama)
-// --- Fungsi untuk Popover "Hold the button" (Menggunakan showGeneralDialog) ---
+
+// --- Fungsi untuk Popover "Hold the button" (Diperbarui) ---
 void showHoldButtonDialog(BuildContext context) {
   const primaryPurple = Color(0xFF6A1B9A);
-
+  
   showGeneralDialog(
     context: context,
     useRootNavigator: true,
-    // Popover hilang ketika user menekan di mana saja
-    barrierDismissible: true,
-
-    // Membuat latar belakang hampir transparan (menghilangkan scrim gelap)
-    barrierColor: Colors.black54.withOpacity(0.01),
-
+    barrierDismissible: true, 
+    barrierColor: Colors.black54.withOpacity(0.01), 
     barrierLabel: 'Dismiss',
     transitionDuration: const Duration(milliseconds: 200),
+    
+    // PositionedTransition untuk animasi slide-up (opsional, tapi bagus untuk popover)
+    transitionBuilder: (context, anim1, anim2, child) {
+      return FadeTransition(
+        opacity: anim1, // Animasi opacity dari anim1
+        child: child,
+      );
+    },
 
     pageBuilder: (context, anim1, anim2) {
-      // Menggunakan Align untuk memposisikan Popover di bagian tengah bawah
       return Align(
-        alignment: Alignment.bottomCenter,
+        alignment: Alignment.center, // Pusatkan Align
         child: Padding(
-          // Posisi di tengah-bawah, di atas area tombol navigasi
-          padding: const EdgeInsets.only(bottom: 80, left: 30, right: 30),
+          // Posisikan popover sedikit di atas tengah layar (di atas tombol SOS)
+          // Sesuaikan nilai 'bottom' ini jika posisi masih kurang pas
+          padding: const EdgeInsets.only(bottom: 200, left: 50, right: 50), 
           child: Material(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            elevation:
-                10, // Memberikan sedikit efek shadow agar popover terlihat menonjol
+            borderRadius: BorderRadius.circular(12), // Radius sedikit lebih kecil
+            elevation: 0, // HILANGKAN SHADOW
             child: Container(
-              padding: const EdgeInsets.all(15),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Padding lebih kecil
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: primaryPurple, width: 2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: primaryPurple, width: 1), // KETEBALAN BORDER DIKURANGI
               ),
               child: const Text(
                 'Hold the button to make a call',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: primaryPurple),
+                style: TextStyle(
+                  fontSize: 14, // FONT SIZE LEBIH KECIL
+                  color: primaryPurple,
+                ),
               ),
             ),
           ),
