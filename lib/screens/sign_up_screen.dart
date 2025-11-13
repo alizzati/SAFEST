@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
-import '../utils/validators.dart'; 
+import '../utils/validators.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -16,9 +17,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // Controller untuk checkbox terms & conditions
   bool _isTermsAccepted = false;
-
-  // Controller untuk state button sign up (pressed/not pressed)
-  bool _isSignUpPressed = false;
 
   // Form key untuk validasi
   final _formKey = GlobalKey<FormState>();
@@ -36,12 +34,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // Fungsi untuk handle sign up
   void _handleSignUp() {
-    // Validasi form
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    // Validasi terms accepted
     if (!_isTermsAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -59,18 +53,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           backgroundColor: Colors.red.shade600,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           duration: const Duration(seconds: 3),
         ),
       );
       return;
     }
 
-    // TODO: Implement sign up logic
-    // await signUp(_emailController.text, _passwordController.text);
-    print('Sign up with: ${_emailController.text}');
+    // ✅ Jika semua valid, pindah ke halaman Home/Profile
+    context.go('/home'); // atau '/home' jika ada halaman home terpisah
   }
 
   @override
@@ -100,9 +91,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: Center(
               child: ConstrainedBox(
                 // Memastikan konten minimal setinggi layar untuk center vertical
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Container(
                     width: maxWidth,
@@ -137,16 +126,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             'Sign up now and stay connected with\nemergency contacts anytime, anywhere.',
                             style: TextStyle(
                               fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 14 : screenWidth * 0.035,
+                              fontSize: isLargeScreen
+                                  ? 14
+                                  : screenWidth * 0.035,
                               fontWeight: FontWeight.w400,
                               color: const Color(0xFF7E7E7E),
                             ),
                             textAlign: TextAlign.center,
                           ),
 
-                          SizedBox(height: orientation == Orientation.portrait
-                              ? screenHeight * 0.03
-                              : screenHeight * 0.03),
+                          SizedBox(
+                            height: orientation == Orientation.portrait
+                                ? screenHeight * 0.03
+                                : screenHeight * 0.03,
+                          ),
 
                           // ==================== EMAIL INPUT FIELD ====================
                           TextFormField(
@@ -156,7 +149,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               labelText: 'Email Address',
                               labelStyle: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                                fontSize: isLargeScreen
+                                    ? 14
+                                    : screenWidth * 0.038,
                                 color: const Color(0xFF7E7E7E),
                                 fontWeight: FontWeight.w400,
                               ),
@@ -165,7 +160,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // Error style
                               errorStyle: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen ? 12 : screenWidth * 0.032,
+                                fontSize: isLargeScreen
+                                    ? 12
+                                    : screenWidth * 0.032,
                                 color: Colors.red.shade600,
                               ),
                               // Border saat tidak fokus
@@ -207,7 +204,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             style: TextStyle(
                               fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                              fontSize: isLargeScreen
+                                  ? 14
+                                  : screenWidth * 0.038,
                               color: const Color(0xFF000000),
                             ),
                             keyboardType: TextInputType.emailAddress,
@@ -223,7 +222,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               labelText: 'Password',
                               labelStyle: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                                fontSize: isLargeScreen
+                                    ? 14
+                                    : screenWidth * 0.038,
                                 color: const Color(0xFF7E7E7E),
                               ),
                               filled: true,
@@ -231,7 +232,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               // Error style
                               errorStyle: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen ? 12 : screenWidth * 0.032,
+                                fontSize: isLargeScreen
+                                    ? 12
+                                    : screenWidth * 0.032,
                                 color: Colors.red.shade600,
                               ),
                               enabledBorder: OutlineInputBorder(
@@ -286,7 +289,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             style: TextStyle(
                               fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                              fontSize: isLargeScreen
+                                  ? 14
+                                  : screenWidth * 0.038,
                               color: const Color(0xFF0F0F0F),
                             ),
                             // Toggle obscure text berdasarkan state
@@ -323,10 +328,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   ),
                                   child: _isTermsAccepted
                                       ? const Icon(
-                                    Icons.check,
-                                    size: 14,
-                                    color: Colors.white,
-                                  )
+                                          Icons.check,
+                                          size: 14,
+                                          color: Colors.white,
+                                        )
                                       : null,
                                 ),
                               ),
@@ -337,7 +342,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   text: TextSpan(
                                     style: TextStyle(
                                       fontFamily: 'OpenSans',
-                                      fontSize: isLargeScreen ? 13 : screenWidth * 0.028,
+                                      fontSize: isLargeScreen
+                                          ? 13
+                                          : screenWidth * 0.028,
                                       color: const Color(0xFF7E7E7E),
                                     ),
                                     children: [
@@ -351,10 +358,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                             'Terms of Service',
                                             style: TextStyle(
                                               fontFamily: 'OpenSans',
-                                              fontSize: isLargeScreen ? 13 : screenWidth * 0.028,
+                                              fontSize: isLargeScreen
+                                                  ? 13
+                                                  : screenWidth * 0.028,
                                               color: const Color(0xFF512DA8),
                                               fontWeight: FontWeight.w600,
-                                              decorationColor: const Color(0xFF512DA8),
+                                              decorationColor: const Color(
+                                                0xFF512DA8,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -369,10 +380,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                             'Privacy Policy',
                                             style: TextStyle(
                                               fontFamily: 'OpenSans',
-                                              fontSize: isLargeScreen ? 13 : screenWidth * 0.028,
+                                              fontSize: isLargeScreen
+                                                  ? 13
+                                                  : screenWidth * 0.028,
                                               color: const Color(0xFF512DA8),
                                               fontWeight: FontWeight.w600,
-                                              decorationColor: const Color(0xFF512DA8),
+                                              decorationColor: const Color(
+                                                0xFF512DA8,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -408,7 +423,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 'or',
                                 style: TextStyle(
                                   fontFamily: 'OpenSans',
-                                  fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
+                                  fontSize: isLargeScreen
+                                      ? 13
+                                      : screenWidth * 0.035,
                                   color: const Color(0xFF7E7E7E),
                                 ),
                               ),
@@ -443,7 +460,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   ),
                                 ),
                                 elevation: 0,
-                                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.04,
+                                ),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -461,7 +480,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     'Continue with Google',
                                     style: TextStyle(
                                       fontFamily: 'OpenSans',
-                                      fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
+                                      fontSize: isLargeScreen
+                                          ? 14
+                                          : screenWidth * 0.038,
                                       fontWeight: FontWeight.normal,
                                       color: const Color(0xFF0F0F0F),
                                     ),
@@ -471,9 +492,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           ),
 
-                          SizedBox(height: orientation == Orientation.portrait
-                              ? screenHeight * 0.025
-                              : screenHeight * 0.02),
+                          SizedBox(
+                            height: orientation == Orientation.portrait
+                                ? screenHeight * 0.025
+                                : screenHeight * 0.02,
+                          ),
 
                           // ==================== SIGN IN LINK ====================
                           Row(
@@ -483,23 +506,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 "Already have an account? ",
                                 style: TextStyle(
                                   fontFamily: 'OpenSans',
-                                  fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
+                                  fontSize: isLargeScreen
+                                      ? 13
+                                      : screenWidth * 0.035,
                                   color: const Color(0xFF512DA8),
                                 ),
                               ),
                               TextButton(
                                 onPressed: () {
-                                  // Navigate ke Sign In Screen
-                                  Navigator.pushReplacementNamed(context, '/signin');
+                                  context.push('/signin');
                                 },
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
                                 ),
                                 child: Text(
                                   'Sign In',
                                   style: TextStyle(
                                     fontFamily: 'OpenSans',
-                                    fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
+                                    fontSize: isLargeScreen
+                                        ? 13
+                                        : screenWidth * 0.035,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF512DA8),
                                   ),

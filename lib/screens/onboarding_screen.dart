@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:safest/config/routes.dart';
 import 'dart:async';
 import '../widgets/gradient_button.dart';
 import '../widgets/onboarding_dot_indicator.dart';
@@ -39,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _startAutoSlide() {
     _timer = Timer.periodic(
       Duration(seconds: OnboardingConstants.autoSlideDuration),
-          (timer) {
+      (timer) {
         if (_currentPage < OnboardingConstants.pages.length - 1) {
           _currentPage++;
           _pageController.animateToPage(
@@ -62,6 +64,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   // Fungsi untuk pindah ke halaman berikutnya
+  // Fungsi untuk pindah ke halaman berikutnya
+
+  // Fungsi untuk pindah ke halaman berikutnya
   void _nextPage() {
     if (_currentPage < OnboardingConstants.pages.length - 1) {
       _pageController.nextPage(
@@ -69,14 +74,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      // Navigasi ke sign in screen
-      Navigator.pushReplacementNamed(context, '/signup');
+      // Navigasi ke Sign In menggunakan GoRouter
+      context.go(AppRoutes.signUp); // ⬅️ gunakan AppRoutes.signIn
     }
   }
 
   // Fungsi untuk skip ke halaman terakhir
   void _skipToEnd() {
-    Navigator.pushReplacementNamed(context, '/signup');
+    context.go(AppRoutes.signIn); // ⬅️ gunakan AppRoutes.signIn juga
   }
 
   @override
@@ -140,10 +145,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // ==================== BUILD SINGLE PAGE ====================
   // Widget untuk membangun satu halaman onboarding
   Widget _buildPage(
-      OnboardingData data,
-      double screenHeight,
-      double screenWidth,
-      ) {
+    OnboardingData data,
+    double screenHeight,
+    double screenWidth,
+  ) {
     return Stack(
       children: [
         // ==================== BACKGROUND IMAGE ====================
@@ -253,9 +258,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   vertical: screenHeight * 0.04,
                 ),
                 // Min height agar card lebih besar
-                constraints: BoxConstraints(
-                  minHeight: screenHeight * 0.35,
-                ),
+                constraints: BoxConstraints(minHeight: screenHeight * 0.35),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(32),
@@ -292,7 +295,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
                         OnboardingConstants.pages.length,
-                            (index) => OnboardingDotIndicator(
+                        (index) => OnboardingDotIndicator(
                           index: index,
                           currentPage: _currentPage,
                         ),

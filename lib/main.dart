@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
-import 'screens/sign_in_screen.dart';
-import 'screens/sign_up_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/emergency/emergency_call_screen.dart';
-import 'screens/emergency/calling_screen.dart';
-import 'screens/emergency/ongoing_call_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'config/routes.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +11,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final GoRouter router = createRouter();
+
+    return MaterialApp.router(
       title: 'Safest',
       theme: ThemeData(
         fontFamily: 'OpenSans',
@@ -24,17 +21,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      // Setup routes
-      initialRoute: '/splash',
-      routes: {
-        '/splash': (context) => const SplashScreen(),
-        '/signin': (context) => const SignInScreen(),
-        '/signup': (context) => const SignUpScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/emergency': (context) => const EmergencyCallScreen(), // Target popUntil
-        '/calling': (context) => const CallingScreen(),
-        '/ongoing_call': (context) => const OngoingCallScreen(),
-      },
+      routerConfig: router,
     );
   }
 }

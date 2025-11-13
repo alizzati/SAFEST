@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart';
 
 class OngoingCallScreen extends StatefulWidget {
@@ -40,8 +41,8 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
   // Fungsi untuk menampilkan dialog konfirmasi
   Future<void> _showEndCallConfirmation(BuildContext context) async {
     // Memastikan timer berhenti saat dialog muncul
-    _callTimer?.cancel(); 
-    
+    _callTimer?.cancel();
+
     final bool? endCall = await showDialog<bool>(
       context: context,
       useRootNavigator: true,
@@ -54,10 +55,10 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
     if (endCall == true) {
       // NAVIGASI KEMBALI KE EMERGENCY SCREEN
       // Menggunakan popUntil untuk membersihkan stack hingga rute '/emergency'
-      Navigator.of(context).popUntil((route) => route.settings.name == '/emergency');
+      context.pop();
     } else {
       // Jika user menekan 'Cancel', lanjutkan timer
-      _startCallTimer(); 
+      _startCallTimer();
     }
   }
 
@@ -83,7 +84,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
         centerTitle: true,
         backgroundColor: darkGray,
         elevation: 0,
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(
@@ -100,7 +101,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
               child: const Icon(Icons.person, size: 90, color: darkGray),
             ),
             const SizedBox(height: 20),
-            
+
             // Contact Name
             const Text(
               'Mom',
@@ -111,17 +112,14 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
               ),
             ),
             const SizedBox(height: 5),
-            
+
             // --- TAMPILAN WAKTU YANG TERUS BERTAMBAH ---
             Text(
               _formatTime(_secondsElapsed),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 20,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 20),
             ),
+
             // --- AKHIR TAMPILAN WAKTU ---
-            
             const SizedBox(height: 80),
 
             // Call Actions
@@ -129,8 +127,16 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildActionCircle(Icons.volume_up, 'Speaker', lightGray),
-                _buildActionCircle(Icons.location_on, 'Send Location', lightGray),
-                _buildActionCircle(Icons.fiber_manual_record_outlined, 'Record', lightGray),
+                _buildActionCircle(
+                  Icons.location_on,
+                  'Send Location',
+                  lightGray,
+                ),
+                _buildActionCircle(
+                  Icons.fiber_manual_record_outlined,
+                  'Record',
+                  lightGray,
+                ),
               ],
             ),
             const SizedBox(height: 80),
@@ -164,17 +170,11 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
         Container(
           width: 70,
           height: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: bgColor,
-          ),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
           child: Icon(icon, color: Colors.white, size: 35),
         ),
         const SizedBox(height: 5),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-        ),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
       ],
     );
   }
