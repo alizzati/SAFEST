@@ -60,10 +60,6 @@ GoRouter createRouter() {
         path: AppRoutes.ongoingCall,
         builder: (context, state) => const OngoingCallScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.profile,
-        builder: (context, state) => const ProfileScreen(),
-      ),
 
       // Halaman dengan navbar persistent
       ShellRoute(
@@ -96,6 +92,10 @@ GoRouter createRouter() {
           GoRoute(
             path: AppRoutes.emergency,
             builder: (context, state) => const EmergencyCallScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),
