@@ -1,0 +1,147 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+
+class CallingScreen extends StatefulWidget {
+  const CallingScreen({super.key});
+
+  @override
+  State<CallingScreen> createState() => _CallingScreenState();
+}
+
+class _CallingScreenState extends State<CallingScreen> {
+  Timer? _navigationTimer;
+  Timer? _statusTimer;
+  int _seconds = 0;
+  
+  final String contactName = 'Mom'; 
+
+  @override
+  void initState() {
+    super.initState();
+    // 1. Timer Navigasi: Navigasi setelah 5 detik
+    _navigationTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        // Navigasi ke OngoingCallScreen
+        Navigator.of(context).pushReplacementNamed('/ongoing_call');
+      }
+    });
+    
+    // 2. Timer Status: Menghitung waktu
+    _statusTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        _seconds++;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _navigationTimer?.cancel();
+    _statusTimer?.cancel();
+    super.dispose();
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    const darkGray = Color(0xFF333333);
+    const lightGray = Color(0xFF616161);
+    const redColor = Color(0xFFE53935);
+    
+    return Scaffold(
+      backgroundColor: darkGray,
+      appBar: AppBar(
+        title: const Text(
+          'Calling...',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: darkGray,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Avatar (Lingkaran Putih)
+            Container(
+              width: 150,
+              height: 150,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Contact Name
+            Text(
+              contactName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 5),
+
+            // Call Actions
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildActionCircle(Icons.volume_up, 'Speaker', lightGray),
+                // End Call Button (Langsung kembali ke Emergency Screen)
+                GestureDetector(
+                  onTap: () {
+                    // Kembali ke EmergencyCallScreen
+                    Navigator.of(context).popUntil((route) => route.settings.name == '/emergency');
+                  },
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: redColor,
+                    ),
+                    child: const Icon(
+                      Icons.call_end,
+                      color: Colors.white,
+                      size: 40,
+                    ),
+                  ),
+                ),
+                _buildActionCircle(Icons.location_on, 'Location', lightGray),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCircle(IconData icon, String label, Color bgColor) {
+    return Column(
+      children: [
+        Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: bgColor,
+          ),
+          child: Icon(icon, color: Colors.white, size: 35),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      ],
+    );
+  }
+}
