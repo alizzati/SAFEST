@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:safest/config/routes.dart';
 import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart';
 
 class OngoingCallScreen extends StatefulWidget {
@@ -126,7 +128,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
         centerTitle: true,
         backgroundColor: darkGray,
         elevation: 0,
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(
@@ -143,7 +145,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
               child: const Icon(Icons.person, size: 90, color: darkGray),
             ),
             const SizedBox(height: 20),
-            
+
             // Contact Name
             const Text(
               'Gensha', // Ganti dengan widget.contactName jika ada
@@ -158,10 +160,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
             // Timer Utama
             Text(
               _formatTime(_secondsElapsed),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 20,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 20),
             ),
             
             // Indikator Perekaman

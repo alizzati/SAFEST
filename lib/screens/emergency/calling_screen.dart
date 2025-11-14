@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart'; 
+import 'package:go_router/go_router.dart';
+import 'package:safest/config/routes.dart';
 
 class CallingScreen extends StatefulWidget {
   const CallingScreen({super.key});
@@ -46,9 +48,7 @@ class _CallingScreenState extends State<CallingScreen> {
         t.cancel();
         return;
       }
-      setState(() {
-        _seconds++;
-      });
+      setState(() => _seconds++);
     });
   }
   
@@ -80,7 +80,7 @@ class _CallingScreenState extends State<CallingScreen> {
   Widget build(BuildContext context) {
     const darkGray = Color(0xFF333333);
     const redColor = Color(0xFFE53935);
-    
+
     return Scaffold(
       backgroundColor: darkGray,
       appBar: AppBar(
@@ -97,7 +97,7 @@ class _CallingScreenState extends State<CallingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Avatar (Lingkaran Putih)
+            // Avatar
             Container(
               width: 150,
               height: 150,
@@ -107,8 +107,8 @@ class _CallingScreenState extends State<CallingScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            
-            // Contact Name
+
+            // Nama kontak
             Text(
               contactName,
               style: const TextStyle(
@@ -130,12 +130,10 @@ class _CallingScreenState extends State<CallingScreen> {
             const SizedBox(height: 80),
 
             // Call Actions
-            Padding( // <--- Tambahkan Padding di sekitar Row untuk memberikan ruang napas
+            Padding( 
               padding: const EdgeInsets.symmetric(horizontal: 20.0), 
               child: Row(
-                // UBAH: Gunakan spaceAround untuk distribusi yang lebih efisien 
-                // tanpa space berlebihan di sisi tepi.
-                mainAxisAlignment: MainAxisAlignment.spaceAround, 
+                  mainAxisAlignment: MainAxisAlignment.spaceAround, 
                 children: [
                   // 1. Speaker Button
                   SizedBox(
@@ -217,6 +215,7 @@ class _CallingScreenState extends State<CallingScreen> {
           ),
         ),
         const SizedBox(height: 5),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
         Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
       ],
     );

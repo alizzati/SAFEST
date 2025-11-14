@@ -1,10 +1,9 @@
+// (File: main.dart)
+
 import 'package:flutter/material.dart';
-import 'screens/sign_in_screen.dart';
-import 'screens/sign_up_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/emergency/emergency_call_screen.dart';
-import 'screens/emergency/calling_screen.dart';
-import 'screens/emergency/ongoing_call_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'config/routes.dart'; // Asumsi file ini berisi fungsi createRouter()
+// ... (imports lainnya)
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +14,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    // 1. Ambil router configuration
+    final GoRouter router = createRouter(); // Asumsi fungsi ini didefinisikan di config/routes.dart
+
+    return MaterialApp.router(
       title: 'Safest',
       theme: ThemeData(
         fontFamily: 'OpenSans',
@@ -23,20 +25,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      // Setup routes
-      // initialRoute: '/signup', // Screen pertama yang muncul
-      initialRoute: '/emergency',
-      routes: {
-        '/signin': (context) => const SignInScreen(),
-        '/signup': (context) => const SignUpScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/emergency': (context) => const EmergencyCallScreen(),
-        '/calling': (context) => const CallingScreen(),
-        '/ongoing_call': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return OngoingCallScreen(isInitialSpeakerOn: args['isSpeakerOn'] as bool);
-        },
-      },
+      
+      // 2. HAPUS properti 'initialRoute' dan 'routes' yang lama
+      // 3. Masukkan routerConfig ke MaterialApp.router
+      routerConfig: router,
     );
   }
 }
