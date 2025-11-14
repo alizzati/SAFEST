@@ -5,7 +5,7 @@ import 'package:safest/screens/home_screen.dart';
 import 'package:safest/screens/profile_screen.dart';
 import 'package:safest/screens/onboarding_screen.dart';
 import 'package:safest/screens/emergency/emergency_call_screen.dart'; 
-// import 'package:safest/screens/emergency/calling_screen.dart';
+import 'package:safest/screens/emergency/calling_screen.dart'; 
 import 'package:safest/screens/emergency/ongoing_call_screen.dart';
 import 'package:safest/screens/sign_in_screen.dart';
 import 'package:safest/screens/sign_up_screen.dart';
@@ -55,7 +55,7 @@ GoRouter createRouter() {
       GoRoute(
         path: AppRoutes.emergency,
         name: 'emergency', 
-        builder: (context, state) => const CallingScreen(),
+        builder: (context, state) => const EmergencyCallScreen(),
       ),
       GoRoute(
         path: AppRoutes.calling,

@@ -1,224 +1,231 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:go_router/go_router.dart';
-import 'package:safest/config/routes.dart';
+import 'package:go_router/go_router.dart'; // Digunakan untuk navigasi GoRouter
+import 'package:safest/models/emergency_status.dart'; // Pastikan path benar
+import 'package:safest/widgets/emergency/status_card.dart'; // Pastikan path benar
+import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart'; // Import showHoldButtonDialog
 
-class CallingScreen extends StatefulWidget {
-  const CallingScreen({super.key});
+class EmergencyCallScreen extends StatefulWidget {
+  const EmergencyCallScreen({super.key});
 
   @override
-  State<CallingScreen> createState() => _CallingScreenState();
+  State<EmergencyCallScreen> createState() => _EmergencyCallScreenState();
 }
 
-class _CallingScreenState extends State<CallingScreen> {
-  Timer? _navigationTimer;
+class _EmergencyCallScreenState extends State<EmergencyCallScreen> with SingleTickerProviderStateMixin {
   Timer? _statusTimer;
-  
-  // Audio Player
-  late AudioPlayer _audioPlayer; 
+  int _currentStatusIndex = 0; 
 
-  int _seconds = 0;
-  bool _isSpeakerOn = false; 
-  final String contactName = 'Mom'; 
+  late AnimationController _pulsingAnimationController;
+  late Animation<double> _pulsingAnimation;
+  
+  // Konstanta Ukuran (Disetel untuk stabilitas)
+  static const double _statusCardVisualHeight = 100.0;
+  static const double _buttonSafeSize = 250.0; 
+  static const double _buttonBaseSize = 180.0; 
+  static const double _buttonInnerSize = 150.0;
+
+  final List<EmergencyStatus> _allStatuses = [
+    EmergencyStatus(
+      text: 'Emergency activated. Your location is being shared with your primary contact.',
+      icon: Icons.location_on, 
+    ),
+    EmergencyStatus(
+      text: 'Attempting to contact your emergency contact, if they do not respond, the next person in your list will be contacted.',
+      icon: Icons.phone_in_talk,
+    ),
+    EmergencyStatus(
+      text: 'Recording has started to ensure your safety. Audio will be saved locally.',
+      icon: Icons.graphic_eq,
+    ),
+    EmergencyStatus(
+      text: 'Stay calm and follow any instructions from your emergency contacts or local authorities.',
+      icon: Icons.person_pin_circle,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
 
-    // --- DEKLARASI & INISIALISASI AUDIO ---
-    _audioPlayer = AudioPlayer();
-    _startRinging();
-    // ----------------------------------------
+    _pulsingAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000), 
+    )..repeat(reverse: true); 
 
-    // 1. Timer Navigasi: Navigasi setelah 5 detik
-    _navigationTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted) {
-        // Hentikan ringing sebelum navigasi
-        _audioPlayer.stop(); 
-        
-        // Navigasi ke OngoingCallScreen sambil MENGIRIMKAN STATE SPEAKER
-        Navigator.of(context).pushReplacementNamed(
-          '/ongoing_call', 
-          arguments: {'isSpeakerOn': _isSpeakerOn},
-        );
-      }
-    });
+    _pulsingAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _pulsingAnimationController, curve: Curves.easeInOut),
+    );
 
-    // 2. Timer Status: Menghitung waktu
-    _statusTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) {
-        t.cancel();
-        return;
-      }
+    _startStatusSequence();
+  }
+
+  // Logika Looping Status
+  void _startStatusSequence() {
+    _statusTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       setState(() {
-        _seconds++;
+        if (_currentStatusIndex < _allStatuses.length - 1) { 
+          _currentStatusIndex++;
+        } else {
+          _currentStatusIndex = 0; // Looping
+        }
       });
     });
-  }
-  
-  // Fungsi untuk memulai Ringing (Looped)
-  void _startRinging() async {
-    // Memastikan audioplayer berada dalam mode looping
-    await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    // Asumsi file 'ringing.mp3' ada di assets/audio/
-    // Anda harus mendaftarkan folder 'assets/audio/' di pubspec.yaml
-    await _audioPlayer.play(AssetSource('audio/ringing.mp3'));
   }
 
   @override
   void dispose() {
-    // Hentikan dan dispose audio saat widget di-dispose
-    _audioPlayer.stop();
-    _audioPlayer.dispose();
-    _navigationTimer?.cancel();
     _statusTimer?.cancel();
+    _pulsingAnimationController.dispose(); 
     super.dispose();
-  }
-  
-  // Format waktu (00:05)
-  String _formatTime(int seconds) {
-    return '00:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    const darkGray = Color(0xFF333333);
-    const redColor = Color(0xFFE53935);
+    const primaryPurple = Color(0xFF6A1B9A);
     
     return Scaffold(
-      backgroundColor: darkGray,
+      // Kunci untuk GoRouter popUntil, meskipun tidak digunakan secara langsung di sini
+      key: const ValueKey('/emergency'), 
+      
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Calling...',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: darkGray,
+        // ... (AppBar styling)
+        title: const Text('9:41'), // Update waktu di App Bar
+        centerTitle: false,
+        backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Avatar (Lingkaran Putih)
-            Container(
-              width: 150,
-              height: 150,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
+        automaticallyImplyLeading: false, // Hapus tombol back default
+        actions: [
+            IconButton(
+                icon: const Icon(Icons.home_outlined, color: Colors.black),
+                onPressed: () => context.go('/home'), // Navigasi GoRouter ke Home
             ),
+            const SizedBox(width: 16),
+        ],
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+            onPressed: () => context.pop(), // Navigasi GoRouter kembali
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
             const SizedBox(height: 20),
             
-            // Contact Name
-            Text(
-              contactName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 30,
+            const Text(
+              'Emergency help\nneeded?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 34,
                 fontWeight: FontWeight.bold,
+                color: primaryPurple,
+                height: 1.1,
               ),
             ),
-            const SizedBox(height: 5),
-            
-            // Waktu
-            Text(
-              _formatTime(_seconds),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 20,
+            const SizedBox(height: 10),
+            const Text(
+              'Just hold the button to call',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 80),
+            const SizedBox(height: 40),
 
-            // Call Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // 1. Speaker Button
-                SizedBox(
-                  height: 80, // Menyesuaikan tinggi dengan End Call Button
-                  child: Center(
-                    child: _buildActionCircle(
-                      Icons.volume_up,
-                      'Speaker',
-                      onTap: () => setState(() => _isSpeakerOn = !_isSpeakerOn),
-                      isActive: _isSpeakerOn,
-                    ),
-                  ),
+            _buildCallButton(),
+            
+            const SizedBox(height: 40), 
+
+            // Daftar Status Dinamis (Stabil)
+            SizedBox(
+              height: _statusCardVisualHeight, 
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500), 
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                child: StatusCard(
+                  key: ValueKey(_currentStatusIndex), 
+                  status: _allStatuses[_currentStatusIndex],
                 ),
-                
-                // 2. End Call Button (80x80)
-                GestureDetector(
-                  onTap: () {
-                    // Hentikan ringing dan kembali ke Emergency Screen
-                    _audioPlayer.stop(); 
-                    Navigator.of(context).pop();
-                  },
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: redColor,
-                    ),
-                    child: const Icon(
-                      Icons.call_end,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                ),
-                
-                // 3. Location Button
-                SizedBox(
-                  height: 80, // Menyesuaikan tinggi dengan End Call Button
-                  child: Center(
-                    child: _buildActionCircle(
-                      Icons.location_on, 
-                      'Location', 
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  // Mengubah _buildActionCircle agar menerima onTap dan isActive
-  Widget _buildActionCircle(
-    IconData icon,
-    String label, {
-    VoidCallback? onTap,
-    bool isActive = false,
-  }) {
-    const darkGray = Color(0xFF333333);
-    const lightGray = Color(0xFF616161);
-    const activeColor = Colors.white;
-    
-    final bgColor = isActive ? activeColor : lightGray;
-    final iconColor = isActive ? darkGray : Colors.white;
-
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
-            child: Icon(icon, color: iconColor, size: 35),
+  Widget _buildCallButton() {
+    return SizedBox(
+      width: _buttonSafeSize, 
+      height: _buttonSafeSize,
+      child: Center( 
+        child: GestureDetector(
+          // --- SINGLE TAP (POPOVER) ---
+          onTap: () {
+            // Memanggil popover "Hold the button"
+            showHoldButtonDialog(context);
+          },
+          // --- LONG PRESS (NAVIGASI KE CALLING) ---
+          onLongPress: () {
+            _statusTimer?.cancel();
+            
+            // Navigasi GoRouter menggunakan nama rute
+            context.pushReplacementNamed('calling');
+          },
+          child: AnimatedBuilder( 
+            animation: _pulsingAnimation,
+            builder: (context, child) {
+              return Container(
+                width: _buttonBaseSize * _pulsingAnimation.value, 
+                height: _buttonBaseSize * _pulsingAnimation.value,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE53935), 
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(_pulsingAnimation.value * 0.3), 
+                      blurRadius: 25, 
+                      spreadRadius: 8 * _pulsingAnimation.value, 
+                    ),
+                    const BoxShadow(
+                      color: Color(0xFFB71C1C),
+                      offset: Offset(0, 3),
+                      blurRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Container(
+                    width: _buttonInnerSize,
+                    height: _buttonInnerSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.5), width: 3),
+                      color: const Color(0xFFC62828), 
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/image_63e8bd.png', 
+                        width: 75,
+                        height: 75,
+                        color: Colors.white, 
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
-        const SizedBox(height: 5),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
-      ],
+      ),
     );
   }
 }
