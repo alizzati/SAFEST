@@ -58,7 +58,7 @@ class _CallingScreenState extends State<CallingScreen> {
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
     // Asumsi file 'ringing.mp3' ada di assets/audio/
     // Anda harus mendaftarkan folder 'assets/audio/' di pubspec.yaml
-    await _audioPlayer.play(AssetSource('audio/calling_audio.mp3'));
+    await _audioPlayer.play(AssetSource('sounds/calling_audio.mp3'));
   }
 
   @override
