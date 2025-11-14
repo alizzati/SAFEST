@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart';
 
 class OngoingCallScreen extends StatefulWidget {
-  const OngoingCallScreen({super.key});
+  final bool isInitialSpeakerOn;
+  
+  // Menerima isInitialSpeakerOn dari rute
+  const OngoingCallScreen({required this.isInitialSpeakerOn, super.key});
 
   @override
   State<OngoingCallScreen> createState() => _OngoingCallScreenState();
@@ -11,15 +14,26 @@ class OngoingCallScreen extends StatefulWidget {
 
 class _OngoingCallScreenState extends State<OngoingCallScreen> {
   Timer? _callTimer;
-  int _secondsElapsed = 0; // Mulai dari 0 detik
+  Timer? _recordTimer; // Timer untuk perekaman
+  
+  int _secondsElapsed = 0; // Timer utama
+  int _recordSeconds = 0; // Timer perekaman
+  
+  // STATE untuk tombol aksi
+  late bool _isSpeakerOn; // Diinisialisasi dari argumen
+  bool _isRecording = false;
 
   @override
   void initState() {
     super.initState();
+    // Menerima state speaker dari CallingScreen
+    _isSpeakerOn = widget.isInitialSpeakerOn; 
+    
     _startCallTimer();
+    // TODO: (SOUND) Mulai efek suara BERBICARA di sini (Ongoing)
   }
 
-  // Fungsi untuk memulai penghitung waktu
+  // Fungsi untuk memulai penghitung waktu utama
   void _startCallTimer() {
     _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
@@ -27,6 +41,27 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
           _secondsElapsed++;
         });
       }
+    });
+  }
+
+  // Toggle Perekaman
+  void _toggleRecording() {
+    if (_isRecording) {
+      // Stop Recording
+      _recordTimer?.cancel();
+      _recordSeconds = 0;
+    } else {
+      // Start Recording
+      _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() {
+            _recordSeconds++;
+          });
+        }
+      });
+    }
+    setState(() {
+      _isRecording = !_isRecording;
     });
   }
 
@@ -40,7 +75,8 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
   // Fungsi untuk menampilkan dialog konfirmasi
   Future<void> _showEndCallConfirmation(BuildContext context) async {
     // Memastikan timer berhenti saat dialog muncul
-    _callTimer?.cancel(); 
+    _callTimer?.cancel();
+    _recordTimer?.cancel(); // Hentikan timer perekaman juga
     
     final bool? endCall = await showDialog<bool>(
       context: context,
@@ -54,16 +90,22 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
     if (endCall == true) {
       // NAVIGASI KEMBALI KE EMERGENCY SCREEN
       // Menggunakan popUntil untuk membersihkan stack hingga rute '/emergency'
+      // TODO: (SOUND) Hentikan efek suara BERBICARA di sini
       Navigator.of(context).popUntil((route) => route.settings.name == '/emergency');
     } else {
       // Jika user menekan 'Cancel', lanjutkan timer
       _startCallTimer(); 
+      if (_isRecording) {
+        _toggleRecording(); // Lanjutkan timer perekaman jika sedang aktif
+      }
     }
   }
 
   @override
   void dispose() {
     _callTimer?.cancel();
+    _recordTimer?.cancel();
+    // TODO: (SOUND) Hentikan efek suara BERBICARA di sini
     super.dispose();
   }
 
@@ -72,13 +114,14 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
     const darkGray = Color(0xFF333333);
     const lightGray = Color(0xFF616161);
     const redColor = Color(0xFFE53935);
+    const activeIconColor = Colors.white;
 
     return Scaffold(
       backgroundColor: darkGray,
       appBar: AppBar(
         title: const Text(
           'Ongoing Call ...',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: activeIconColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: darkGray,
@@ -103,16 +146,16 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
             
             // Contact Name
             const Text(
-              'Mom',
+              'Gensha', // Ganti dengan widget.contactName jika ada
               style: TextStyle(
-                color: Colors.white,
+                color: activeIconColor,
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 5),
             
-            // --- TAMPILAN WAKTU YANG TERUS BERTAMBAH ---
+            // Timer Utama
             Text(
               _formatTime(_secondsElapsed),
               style: const TextStyle(
@@ -120,7 +163,16 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
                 fontSize: 20,
               ),
             ),
-            // --- AKHIR TAMPILAN WAKTU ---
+            
+            // Indikator Perekaman
+            if (_isRecording)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Recording: ${_formatTime(_recordSeconds)}',
+                  style: const TextStyle(color: Colors.red, fontSize: 14),
+                ),
+              ),
             
             const SizedBox(height: 80),
 
@@ -128,9 +180,24 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildActionCircle(Icons.volume_up, 'Speaker', lightGray),
+                // Speaker Button
+                _buildActionCircle(
+                  Icons.volume_up, 
+                  'Speaker', 
+                  lightGray,
+                  onTap: () => setState(() => _isSpeakerOn = !_isSpeakerOn),
+                  isActive: _isSpeakerOn,
+                ),
+                // Send Location
                 _buildActionCircle(Icons.location_on, 'Send Location', lightGray),
-                _buildActionCircle(Icons.fiber_manual_record_outlined, 'Record', lightGray),
+                // Record Button
+                _buildActionCircle(
+                  Icons.fiber_manual_record_outlined, 
+                  'Record', 
+                  lightGray,
+                  onTap: _toggleRecording,
+                  isActive: _isRecording,
+                ),
               ],
             ),
             const SizedBox(height: 80),
@@ -147,7 +214,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
                 ),
                 child: const Icon(
                   Icons.call_end,
-                  color: Colors.white,
+                  color: activeIconColor,
                   size: 40,
                 ),
               ),
@@ -158,22 +225,31 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
     );
   }
 
-  Widget _buildActionCircle(IconData icon, String label, Color bgColor) {
+  // Widget untuk tombol aksi
+  Widget _buildActionCircle(IconData icon, String label, Color bgColor, {VoidCallback? onTap, bool isActive = false}) {
+    const darkGray = Color(0xFF333333);
+    const activeColor = Colors.white;
+    final displayBgColor = isActive ? activeColor : bgColor;
+    final iconColor = isActive ? darkGray : activeColor;
+
     return Column(
       children: [
-        Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: bgColor,
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: displayBgColor,
+            ),
+            child: Icon(icon, color: iconColor, size: 35),
           ),
-          child: Icon(icon, color: Colors.white, size: 35),
         ),
         const SizedBox(height: 5),
         Text(
           label,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: const TextStyle(color: activeColor, fontSize: 14),
         ),
       ],
     );

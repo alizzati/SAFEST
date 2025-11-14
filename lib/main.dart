@@ -24,15 +24,18 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       // Setup routes
-      initialRoute: '/signup', // Screen pertama yang muncul
-      // initialRoute: '/emergency',
+      // initialRoute: '/signup', // Screen pertama yang muncul
+      initialRoute: '/emergency',
       routes: {
         '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
         '/profile': (context) => const ProfileScreen(),
-        '/emergency': (context) => const EmergencyCallScreen(), // Target popUntil
+        '/emergency': (context) => const EmergencyCallScreen(),
         '/calling': (context) => const CallingScreen(),
-        '/ongoing_call': (context) => const OngoingCallScreen(),
+        '/ongoing_call': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return OngoingCallScreen(isInitialSpeakerOn: args['isSpeakerOn'] as bool);
+        },
       },
     );
   }

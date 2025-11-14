@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart'; 
 
 class CallingScreen extends StatefulWidget {
   const CallingScreen({super.key});
@@ -11,21 +12,34 @@ class CallingScreen extends StatefulWidget {
 class _CallingScreenState extends State<CallingScreen> {
   Timer? _navigationTimer;
   Timer? _statusTimer;
-  int _seconds = 0;
   
+  // Audio Player
+  late AudioPlayer _audioPlayer; 
+
+  int _seconds = 0;
+  bool _isSpeakerOn = false; 
   final String contactName = 'Mom'; 
 
   @override
   void initState() {
     super.initState();
-    // 1. Timer Navigasi: Navigasi setelah 5 detik
-    _navigationTimer = Timer(const Duration(seconds: 5), () {
+
+    _audioPlayer = AudioPlayer();
+    _startRinging();
+    
+    _navigationTimer = Timer(const Duration(seconds: 15), () {
       if (mounted) {
-        // Navigasi ke OngoingCallScreen
-        Navigator.of(context).pushReplacementNamed('/ongoing_call');
+        // Hentikan ringing sebelum navigasi
+        _audioPlayer.stop(); 
+        
+        // Navigasi ke OngoingCallScreen sambil MENGIRIMKAN STATE SPEAKER
+        Navigator.of(context).pushReplacementNamed(
+          '/ongoing_call', 
+          arguments: {'isSpeakerOn': _isSpeakerOn},
+        );
       }
     });
-    
+
     // 2. Timer Status: Menghitung waktu
     _statusTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) {
@@ -37,19 +51,34 @@ class _CallingScreenState extends State<CallingScreen> {
       });
     });
   }
+  
+  // Fungsi untuk memulai Ringing (Looped)
+  void _startRinging() async {
+    // Memastikan audioplayer berada dalam mode looping
+    await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    // Asumsi file 'ringing.mp3' ada di assets/audio/
+    // Anda harus mendaftarkan folder 'assets/audio/' di pubspec.yaml
+    await _audioPlayer.play(AssetSource('audio/calling_audio.mp3'));
+  }
 
   @override
   void dispose() {
+    // Hentikan dan dispose audio saat widget di-dispose
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
     _navigationTimer?.cancel();
     _statusTimer?.cancel();
     super.dispose();
   }
-
+  
+  // Format waktu (00:05)
+  String _formatTime(int seconds) {
+    return '00:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
     const darkGray = Color(0xFF333333);
-    const lightGray = Color(0xFF616161);
     const redColor = Color(0xFFE53935);
     
     return Scaffold(
@@ -89,34 +118,72 @@ class _CallingScreenState extends State<CallingScreen> {
               ),
             ),
             const SizedBox(height: 5),
+            
+            // Waktu
+            Text(
+              _formatTime(_seconds),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 80),
 
             // Call Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildActionCircle(Icons.volume_up, 'Speaker', lightGray),
-                // End Call Button (Langsung kembali ke Emergency Screen)
-                GestureDetector(
-                  onTap: () {
-                    // Kembali ke EmergencyCallScreen
-                    Navigator.of(context).popUntil((route) => route.settings.name == '/emergency');
-                  },
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: redColor,
-                    ),
-                    child: const Icon(
-                      Icons.call_end,
-                      color: Colors.white,
-                      size: 40,
+            Padding( // <--- Tambahkan Padding di sekitar Row untuk memberikan ruang napas
+              padding: const EdgeInsets.symmetric(horizontal: 20.0), 
+              child: Row(
+                // UBAH: Gunakan spaceAround untuk distribusi yang lebih efisien 
+                // tanpa space berlebihan di sisi tepi.
+                mainAxisAlignment: MainAxisAlignment.spaceAround, 
+                children: [
+                  // 1. Speaker Button
+                  SizedBox(
+                    height: 80, 
+                    child: Center(
+                      child: _buildActionCircle(
+                        Icons.volume_up,
+                        'Speaker',
+                        onTap: () => setState(() => _isSpeakerOn = !_isSpeakerOn),
+                        isActive: _isSpeakerOn,
+                      ),
                     ),
                   ),
-                ),
-                _buildActionCircle(Icons.location_on, 'Location', lightGray),
-              ],
+                  
+                  // 2. End Call Button (80x80)
+                  GestureDetector(
+                    onTap: () {
+                      _audioPlayer.stop(); 
+                      Navigator.of(context).pop();
+                    },
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: redColor,
+                      ),
+                      child: const Icon(
+                        Icons.call_end,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                  
+                  // 3. Location Button
+                  SizedBox(
+                    height: 80, 
+                    child: Center(
+                      child: _buildActionCircle(
+                        Icons.location_on, 
+                        'Location', 
+                        // ... (parameter lain)
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -124,23 +191,33 @@ class _CallingScreenState extends State<CallingScreen> {
     );
   }
 
-  Widget _buildActionCircle(IconData icon, String label, Color bgColor) {
+  // Mengubah _buildActionCircle agar menerima onTap dan isActive
+  Widget _buildActionCircle(
+    IconData icon,
+    String label, {
+    VoidCallback? onTap,
+    bool isActive = false,
+  }) {
+    const darkGray = Color(0xFF333333);
+    const lightGray = Color(0xFF616161);
+    const activeColor = Colors.white;
+    
+    final bgColor = isActive ? activeColor : lightGray;
+    final iconColor = isActive ? darkGray : Colors.white;
+
     return Column(
       children: [
-        Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: bgColor,
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
+            child: Icon(icon, color: iconColor, size: 35),
           ),
-          child: Icon(icon, color: Colors.white, size: 35),
         ),
         const SizedBox(height: 5),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-        ),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
       ],
     );
   }
