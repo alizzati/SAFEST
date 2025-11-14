@@ -33,7 +33,7 @@ GoRouter createRouter() {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.emergency, 
+    initialLocation: AppRoutes.splash, 
     
     routes: [
       GoRoute(
