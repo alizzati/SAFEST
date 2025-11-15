@@ -10,6 +10,8 @@ import 'package:safest/screens/emergency/ongoing_call_screen.dart';
 import 'package:safest/screens/sign_in_screen.dart';
 import 'package:safest/screens/sign_up_screen.dart';
 import 'package:safest/screens/splash_screen.dart';
+import 'package:safest/screens/personal_info_screen.dart';
+import 'package:safest/screens/emergency_contact_screen.dart';
 import 'package:safest/widgets/custom_bottom_nav_bar.dart'; 
 
 class AppRoutes {
@@ -25,6 +27,8 @@ class AppRoutes {
   static const String ongoingCall = '/ongoing_call';
   static const String liveVideo = '/liveVideo';
   static const String education = '/education';
+  static const String personalInfo = '/personal-info';
+  static const String emergencyContact = '/emergency-contact';
 }
 
 GoRouter createRouter() {
@@ -51,6 +55,14 @@ GoRouter createRouter() {
       GoRoute(
         path: AppRoutes.onBoarding,
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.personalInfo,
+        builder: (context, state) => const PersonalInfoScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.emergencyContact,
+        builder: (context, state) => const EmergencyContactScreen(),
       ),
       GoRoute(
         path: AppRoutes.emergency,
