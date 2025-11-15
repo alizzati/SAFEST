@@ -19,4 +19,31 @@ class Validators {
     }
     return null;
   }
+
+  static String? validateRequired(String? value, {String fieldName = 'This field'}) {
+    if (value == null || value.trim().isEmpty) {
+      return '$fieldName is required';
+    }
+    return null;
+  }
+
+  static String? validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Phone number is required';
+    }
+    if (value.trim().length < 9) {
+      return 'Phone number must be at least 9 digits';
+    }
+    return null;
+  }
+
+  static String? validatePostalCode(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Post code is required';
+    }
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+      return 'Post code must be numeric';
+    }
+    return null;
+  }
 }
