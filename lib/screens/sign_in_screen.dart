@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:safest/config/routes.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/custom_text_field.dart';
 import '../utils/validators.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -18,7 +19,6 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Form key untuk validasi
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -28,10 +28,8 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  // Fungsi untuk handle sign in
   void _handleSignIn() {
     if (_formKey.currentState!.validate()) {
-      // Semua validasi lolos → tampilkan snackbar lalu arahkan ke home
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Signing in...'),
@@ -40,9 +38,8 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
       );
 
-      // ✅ Navigasi ke halaman home/profile setelah delay sedikit
       Future.delayed(const Duration(milliseconds: 800), () {
-        context.go(AppRoutes.home); // langsung ke halaman utama
+        context.go(AppRoutes.home);
       });
     }
   }
@@ -102,145 +99,40 @@ class _SignInScreenState extends State<SignInScreen> {
 
                         SizedBox(height: screenHeight * 0.03),
 
-                        // Email Field dengan validasi
-                        TextFormField(
+                        CustomTextField(
                           controller: _emailController,
-                          validator: Validators.validateEmail,
-                          decoration: InputDecoration(
-                            labelText: 'Email Address',
-                            labelStyle: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen
-                                  ? 14
-                                  : screenWidth * 0.038,
-                              color: const Color(0xFF7E7E7E),
-                              fontWeight: FontWeight.w400,
-                            ),
-                            // Error style
-                            errorStyle: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 12 : screenWidth * 0.03,
-                              color: Colors.red,
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE0E0E0),
-                                width: 2,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF512DA8),
-                                width: 2,
-                              ),
-                            ),
-                            // Error border
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Colors.red,
-                                width: 2,
-                              ),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Colors.red,
-                                width: 2,
-                              ),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: screenHeight * 0.02,
-                              horizontal: screenWidth * 0.04,
-                            ),
-                          ),
-                          style: TextStyle(
-                            fontFamily: 'OpenSans',
-                            fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
-                            color: const Color(0xFF000000),
-                          ),
+                          labelText: 'Email Address',
                           keyboardType: TextInputType.emailAddress,
+                          validator: Validators.validateEmail,
+                          isLargeScreen: isLargeScreen,
+                          screenWidth: screenWidth,
+                          screenHeight: screenHeight,
                         ),
 
                         SizedBox(height: screenHeight * 0.02),
 
-                        // Password Field dengan validasi
-                        TextFormField(
+                        CustomTextField(
                           controller: _passwordController,
-                          validator: Validators.validatePassword,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            labelStyle: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen
-                                  ? 14
-                                  : screenWidth * 0.038,
-                              color: const Color(0xFF7E7E7E),
-                            ),
-                            errorStyle: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 12 : screenWidth * 0.03,
-                              color: Colors.red,
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE0E0E0),
-                                width: 2,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF512DA8),
-                                width: 2,
-                              ),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Colors.red,
-                                width: 2,
-                              ),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Colors.red,
-                                width: 2,
-                              ),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: const Color(0xFF7E7E7E),
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
-                                });
-                              },
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: screenHeight * 0.02,
-                              horizontal: screenWidth * 0.04,
-                            ),
-                          ),
-                          style: TextStyle(
-                            fontFamily: 'OpenSans',
-                            fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
-                            color: const Color(0xFF0F0F0F),
-                          ),
+                          labelText: 'Password',
                           obscureText: !_isPasswordVisible,
+                          validator: Validators.validatePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: const Color(0xFF7E7E7E),
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                          isLargeScreen: isLargeScreen,
+                          screenWidth: screenWidth,
+                          screenHeight: screenHeight,
                         ),
 
                         SizedBox(height: screenHeight * 0.015),
@@ -262,9 +154,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               'Forgot Password?',
                               style: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen
-                                    ? 13
-                                    : screenWidth * 0.035,
+                                fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
                                 color: const Color(0xFF512DA8),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -296,9 +186,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               'or',
                               style: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen
-                                    ? 13
-                                    : screenWidth * 0.035,
+                                fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
                                 color: const Color(0xFF7E7E7E),
                               ),
                             ),
@@ -350,9 +238,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   'Continue with Google',
                                   style: TextStyle(
                                     fontFamily: 'OpenSans',
-                                    fontSize: isLargeScreen
-                                        ? 14
-                                        : screenWidth * 0.038,
+                                    fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
                                     fontWeight: FontWeight.normal,
                                     color: const Color(0xFF0F0F0F),
                                   ),
@@ -372,9 +258,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               "Don't have an account? ",
                               style: TextStyle(
                                 fontFamily: 'OpenSans',
-                                fontSize: isLargeScreen
-                                    ? 13
-                                    : screenWidth * 0.035,
+                                fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
                                 color: const Color(0xFF512DA8),
                               ),
                             ),
@@ -382,19 +266,14 @@ class _SignInScreenState extends State<SignInScreen> {
                               onPressed: () {
                                 context.push(AppRoutes.signUp);
                               },
-
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
                               ),
                               child: Text(
                                 'Sign Up',
                                 style: TextStyle(
                                   fontFamily: 'OpenSans',
-                                  fontSize: isLargeScreen
-                                      ? 13
-                                      : screenWidth * 0.035,
+                                  fontSize: isLargeScreen ? 13 : screenWidth * 0.035,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF512DA8),
                                 ),
