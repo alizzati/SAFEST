@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; // Digunakan untuk navigasi GoRouter
-import 'package:safest/models/emergency_status.dart'; // Pastikan path benar
-import 'package:safest/widgets/emergency/status_card.dart'; // Pastikan path benar
-import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart'; // Import showHoldButtonDialog
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart'; 
+import 'package:safest/models/emergency_status.dart';
+import 'package:safest/widgets/emergency/status_card.dart'; 
+import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart'; 
+import 'package:safest/widgets/custom_bottom_nav_bar.dart';
 
 class EmergencyCallScreen extends StatefulWidget {
   const EmergencyCallScreen({super.key});
@@ -91,37 +93,30 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
   @override
   Widget build(BuildContext context) {
     const primaryPurple = Color(0xFF6A1B9A);
-
+    
     return Scaffold(
-      // Kunci untuk GoRouter popUntil, meskipun tidak digunakan secara langsung di sini
-      key: const ValueKey('/emergency'),
-
       backgroundColor: Colors.white,
+      
+      // HILANGKAN APPBAR
       appBar: AppBar(
-        // ... (AppBar styling)
-        title: const Text('9:41'), // Update waktu di App Bar
-        centerTitle: false,
         backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false, // Hapus tombol back default
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home_outlined, color: Colors.black),
-            onPressed: () => context.go('/home'), // Navigasi GoRouter ke Home
-          ),
-          const SizedBox(width: 16),
-        ],
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => context.pop(), // Navigasi GoRouter kembali
+        toolbarHeight: 0, // Set height to 0 to remove the default space
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarIconBrightness: Brightness.dark,
+          statusBarColor: Colors.transparent,
         ),
       ),
+      
+      // 📝 PERBAIKAN: Tambahkan CustomBottomNavBar
+      bottomNavigationBar: CustomBottomNavBar(), 
+      
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 60),
 
             const Text(
               'Emergency help\nneeded?',
@@ -137,30 +132,33 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
             const Text(
               'Just hold the button to call',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 40),
 
             _buildCallButton(),
+            
+            const SizedBox(height: 40), 
 
-            const SizedBox(height: 40),
-
-            // Daftar Status Dinamis (Stabil)
+            // Daftar Status Dinamis
             SizedBox(
-              height: _statusCardVisualHeight,
+              height: _statusCardVisualHeight, 
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
+                duration: const Duration(milliseconds: 500), 
                 transitionBuilder: (Widget child, Animation<double> animation) {
                   return FadeTransition(opacity: animation, child: child);
                 },
                 child: StatusCard(
-                  key: ValueKey(_currentStatusIndex),
+                  key: ValueKey(_currentStatusIndex), 
                   status: _allStatuses[_currentStatusIndex],
                 ),
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 40), // Buffer untuk Navbar
           ],
         ),
       ),
@@ -188,46 +186,64 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
           child: AnimatedBuilder(
             animation: _pulsingAnimation,
             builder: (context, child) {
-              return Container(
-                width: _buttonBaseSize * _pulsingAnimation.value,
-                height: _buttonBaseSize * _pulsingAnimation.value,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFE53935),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(
-                        _pulsingAnimation.value * 0.3,
-                      ),
-                      blurRadius: 25,
-                      spreadRadius: 8 * _pulsingAnimation.value,
-                    ),
-                    const BoxShadow(
-                      color: Color(0xFFB71C1C),
-                      offset: Offset(0, 3),
-                      blurRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Container(
-                    width: _buttonInnerSize,
-                    height: _buttonInnerSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.5),
-                        width: 3,
-                      ),
-                      color: const Color(0xFFC62828),
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/call_sos.png',
-                        width: 75,
-                        height: 75,
-                        color: Colors.white,
-                      ),
+              return SizedBox(
+                width: _buttonSafeSize, 
+                height: _buttonSafeSize,
+                child: Center( 
+                  child: GestureDetector(
+                    onTap: () {
+                      // Memanggil popover "Hold the button"
+                      showHoldButtonDialog(context);
+                    },
+                    onLongPress: () {
+                      _statusTimer?.cancel();
+                      
+                      // Navigasi GoRouter
+                      context.pushNamed('calling');
+                    },
+                    child: AnimatedBuilder( 
+                      animation: _pulsingAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          width: _buttonBaseSize * _pulsingAnimation.value, 
+                          height: _buttonBaseSize * _pulsingAnimation.value,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFE53935), 
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(_pulsingAnimation.value * 0.3), 
+                                blurRadius: 25, 
+                                spreadRadius: 8 * _pulsingAnimation.value, 
+                              ),
+                              const BoxShadow(
+                                color: Color(0xFFB71C1C),
+                                offset: Offset(0, 3),
+                                blurRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: _buttonInnerSize,
+                              height: _buttonInnerSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.5), width: 3),
+                                color: const Color(0xFFC62828), 
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/images/call_sos.png', // Pastikan nama aset benar
+                                  width: 75,
+                                  height: 75,
+                                  color: Colors.white, 
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),

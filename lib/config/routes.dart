@@ -4,13 +4,15 @@ import 'package:safest/screens/fake_call/set_fake_call_screen.dart';
 import 'package:safest/screens/home_screen.dart';
 import 'package:safest/screens/profile_screen.dart';
 import 'package:safest/screens/onboarding_screen.dart';
-import 'package:safest/screens/emergency/emergency_call_screen.dart'; 
-import 'package:safest/screens/emergency/calling_screen.dart'; 
+import 'package:safest/screens/emergency/emergency_call_screen.dart';
+import 'package:safest/screens/emergency/calling_screen.dart';
 import 'package:safest/screens/emergency/ongoing_call_screen.dart';
 import 'package:safest/screens/sign_in_screen.dart';
 import 'package:safest/screens/sign_up_screen.dart';
 import 'package:safest/screens/splash_screen.dart';
-import 'package:safest/widgets/custom_bottom_nav_bar.dart'; 
+import 'package:safest/screens/live_video_screen.dart';
+import 'package:safest/screens/education_screen.dart';
+import 'package:safest/widgets/custom_bottom_nav_bar.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -33,8 +35,8 @@ GoRouter createRouter() {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.splash, 
-    
+    initialLocation: AppRoutes.calling,
+
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -54,7 +56,6 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.emergency,
-        name: 'emergency', 
         builder: (context, state) => const EmergencyCallScreen(),
       ),
       GoRoute(
@@ -64,15 +65,14 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.ongoingCall,
-        name: 'ongoing_call', 
+        name: 'ongoing_call',
         builder: (context, state) {
-          final args = state.extra as Map<String, dynamic>?;  
+          final args = state.extra as Map<String, dynamic>?;
           final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
           return OngoingCallScreen(isInitialSpeakerOn: isSpeakerOn);
         },
       ),
-      
-      //HALAMAN DENGAN NAVBAR PERSISTENT
+
       ShellRoute(
         builder: (context, state, child) {
           return Scaffold(
@@ -82,7 +82,6 @@ GoRouter createRouter() {
           );
         },
         routes: [
-          // Semua rute di sini akan memiliki CustomBottomNavBar
           GoRoute(
             path: AppRoutes.home,
             builder: (context, state) => const HomeScreen(),
@@ -93,13 +92,11 @@ GoRouter createRouter() {
           ),
           GoRoute(
             path: AppRoutes.liveVideo,
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Live Video'))),
+            builder: (context, state) => const LiveVideoScreen(),
           ),
           GoRoute(
             path: AppRoutes.education,
-            builder: (context, state) =>
-                const Scaffold(body: Center(child: Text('Education'))),
+            builder: (context, state) => const EducationScreen(),
           ),
           GoRoute(
             path: AppRoutes.profile,

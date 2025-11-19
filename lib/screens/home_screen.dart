@@ -1,4 +1,3 @@
-// screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:go_router/go_router.dart';
@@ -7,10 +6,10 @@ import 'package:safest/widgets/home/card_audio.dart';
 import 'package:safest/data/sound_data.dart';
 import 'package:safest/widgets/home/button_circle.dart';
 import 'dart:async';
-
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -23,21 +22,24 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentlyPlayingCardId;
-  bool _isSirenePlaying = false;
+  bool _isSirenePlaying = false; 
+  Position? _currentPosition;
+  
+  final Color _purpleColor = const Color(0xFF512DAB);
+  final Color _redColor = const Color(0xFFC62828);
+  final Color _greenColor = const Color(0xFF4CAF50);
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
 
-    // 🔁 Update lokasi setiap 2 detik sekali
     Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (!mounted) {
         timer.cancel();
         return;
       }
 
-      // Panggil ulang fungsi lokasi
       await _getCurrentLocation();
     });
   }
@@ -49,14 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Periksa apakah layanan lokasi aktif
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       setState(() => _locationEnabled = false);
       return;
     }
 
-    // Periksa dan minta izin lokasi
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -71,7 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Ambil lokasi sekarang
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -85,18 +84,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void _playCardAudio(SoundItem soundItem) async {
     try {
       if (_currentlyPlayingCardId == soundItem.id) {
-        // Jika card yang sama diklik, stop audio
         await _audioPlayer.stop();
         setState(() {
           _currentlyPlayingCardId = null;
         });
       } else {
-        // Stop semua audio yang sedang berjalan
         await _audioPlayer.stop();
-
-        // Play audio baru menggunakan AssetSource
         await _audioPlayer.play(AssetSource(soundItem.audioPath));
-
         setState(() {
           _currentlyPlayingCardId = soundItem.id;
           _isSirenePlaying = false;
@@ -108,34 +102,160 @@ class _HomeScreenState extends State<HomeScreen> {
       print('❌ Error playing audio: $e');
     }
   }
+  void _shareCurrentLocation() async {
+    // 1. Cek apakah lokasi sudah tersedia
+    if (_currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lokasi belum tersedia. Coba lagi.')),
+      );
+      return;
+    }
 
-  void _playSirene() async {
+    // 2. Ambil koordinat
+    final lat = _currentPosition!.latitude;
+    final lon = _currentPosition!.longitude;
+    
+    // 3. Buat tautan Google Maps
+    // Format URL: https://maps.google.com/?q=<latitude>,<longitude>
+    final mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lon';
+    
+    final textToShare = 'Lihat lokasi saya saat ini:\n$mapsUrl';
+
+    // 4. Panggil fungsi berbagi
     try {
-      if (_isSirenePlaying) {
-        // Jika sirene sedang berjalan, stop
+      // Memanggil library Share untuk membuka dialog berbagi sistem
+      await Share.share(textToShare);
+    } catch (e) {
+      print("Error sharing location: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal berbagi lokasi.')),
+      );
+    }
+  }
+
+  void _playSirene({required bool shouldPlay}) async {
+    try {
+      if (shouldPlay) {
+        await _audioPlayer.stop();
+        await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+        await _audioPlayer.play(AssetSource(SoundData.sireneSound.audioPath));
+        setState(() {
+          _isSirenePlaying = true;
+          _currentlyPlayingCardId = null;
+        });
+        print('🚨 Sirene activated!');
+        
+        if (mounted) {
+          _showTurnOffSireneDialog();
+        }
+
+      } else {
         await _audioPlayer.stop();
         setState(() {
           _isSirenePlaying = false;
           _currentlyPlayingCardId = null;
         });
         print('🔇 Sirene stopped');
-      } else {
-        // Stop semua audio yang sedang berjalan
-        await _audioPlayer.stop();
-
-        // Play suara sirene
-        await _audioPlayer.play(AssetSource(SoundData.sireneSound.audioPath));
-
-        setState(() {
-          _isSirenePlaying = true;
-          _currentlyPlayingCardId = null;
-        });
-
-        print('🚨 Sirene activated!');
       }
     } catch (e) {
       print('❌ Error playing sirene: $e');
     }
+  }
+
+  void _handleSireneButtonPress() {
+    if (_isSirenePlaying) {
+      _showTurnOffSireneDialog();
+    } else {
+      _showActivateSireneDialog();
+    }
+  }
+
+  void _showActivateSireneDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          contentPadding: const EdgeInsets.all(30),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Activate\nEmergency Siren?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: _purpleColor,
+                ),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _redColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+                  ),
+                  
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Tutup dialog konfirmasi
+                      _playSirene(shouldPlay: true); // Mulai sirene dan otomatis buka dialog Turn Off
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _greenColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Activate Siren', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showTurnOffSireneDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          contentPadding: const EdgeInsets.all(30),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset('assets/images/sirene.png', height: 80),
+              const SizedBox(height: 10),
+              
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Tutup dialog Turn Off
+                  _playSirene(shouldPlay: false); // Matikan sirene
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _redColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Turn Off Siren', style: TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -157,7 +277,6 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: false,
         child: Stack(
           children: [
-            // ==== PETA FULL SCREEN ====
             _currentLocation == null
                 ? Center(
                     child: Column(
@@ -210,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     right: screenWidth * 0.06,
                     bottom: screenHeight * 0.02,
                   ),
-                  decoration: BoxDecoration(),
+                  decoration: const BoxDecoration(),
                   child: Column(
                     children: [
                       // Baris pertama: Menu icon, Search, dan Profile icon
@@ -221,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: screenWidth * 0.13,
                             color: Colors.white,
                             icon: Icons.refresh,
-                            iconColor: const Color(0xFF512DAB),
+                            iconColor: _purpleColor,
                             onPressed: () async {
                               // Tampilkan indikator loading singkat
                               setState(() {
@@ -301,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: screenWidth * 0.13,
                             color: Colors.white,
                             icon: Icons.person,
-                            iconColor: const Color(0xFF512DAB),
+                            iconColor: _purpleColor,
                             onPressed: () {
                               context.push(AppRoutes.profile);
                             },
@@ -318,19 +437,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: EdgeInsets.only(top: screenHeight * 0.01),
                         child: Row(
                           children: [
-                            Expanded(child: SizedBox()),
+                            const Expanded(child: SizedBox()),
                             Container(
                               width: screenWidth * 0.1,
-                              child: SizedBox(),
+                              child: const SizedBox(),
                             ),
                             SizedBox(width: screenWidth * 0.03),
-                            Expanded(flex: 2, child: SizedBox()),
+                            const Expanded(flex: 2, child: SizedBox()),
                             SizedBox(width: screenWidth * 0.03),
                             ButtonCircle(
                               size: screenWidth * 0.13,
                               color: Colors.white,
                               icon: Icons.notifications,
-                              iconColor: const Color(0xFF512DAB),
+                              iconColor: _purpleColor,
                               onPressed: () {
                                 // Handle menu button press
                               },
@@ -351,15 +470,15 @@ class _HomeScreenState extends State<HomeScreen> {
               top: screenHeight * 0.4,
               child: Column(
                 children: [
-                  // Button Sirene (atas) - dengan efek visual ketika aktif
+                  // Button Sirene (atas) - MENGGUNAKAN LOGIC POP-UP BARU
                   ButtonCircle(
                     size: screenWidth * 0.14,
                     color: Colors.white,
                     assetImage: 'assets/images/sirene.png',
                     iconColor: _isSirenePlaying ? Colors.white : null,
                     isActive: _isSirenePlaying,
-                    activeColor: Colors.red,
-                    onPressed: _playSirene,
+                    activeColor: _redColor,
+                    onPressed: _handleSireneButtonPress, // Panggil handler baru
                   ),
 
                   SizedBox(height: screenHeight * 0.02),
@@ -370,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white,
                     assetImage: 'assets/images/share_loc.png',
                     onPressed: () {
-                      print('Share location button pressed');
+                      _shareCurrentLocation();
                     },
                   ),
                 ],
@@ -382,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
               bottom: screenHeight * 0.20,
               left: 0,
               right: 0,
-              child: Container(
+              child: SizedBox(
                 height: screenHeight * 0.12,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,

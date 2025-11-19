@@ -5,9 +5,9 @@ import 'package:safest/config/routes.dart';
 import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart';
 
 class OngoingCallScreen extends StatefulWidget {
+  // Menerima isInitialSpeakerOn dari rute (Perbaikan 2)
   final bool isInitialSpeakerOn;
   
-  // Menerima isInitialSpeakerOn dari rute
   const OngoingCallScreen({required this.isInitialSpeakerOn, super.key});
 
   @override
@@ -16,209 +16,259 @@ class OngoingCallScreen extends StatefulWidget {
 
 class _OngoingCallScreenState extends State<OngoingCallScreen> {
   Timer? _callTimer;
-  Timer? _recordTimer; // Timer untuk perekaman
+  Timer? _recordTimer;
   
-  int _secondsElapsed = 0; // Timer utama
-  int _recordSeconds = 0; // Timer perekaman
+  int _secondsElapsed = 0; 
+  int _recordSeconds = 0; 
   
-  // STATE untuk tombol aksi
-  late bool _isSpeakerOn; // Diinisialisasi dari argumen
+  late bool _isSpeakerOn; // Diinisialisasi dari argumen (Perbaikan 2)
   bool _isRecording = false;
+  final String contactName = 'Mom';
+  
+  // Konstanta untuk GAP/Space Timer
+  static const double _recordTimerContentHeight = 35.0; 
+  static const double _recordTimerVerticalPadding = 5.0;
+  static const double _recordTimerSpace = _recordTimerContentHeight + _recordTimerVerticalPadding * 2; 
+  static const double _gapBeforeActions = 50.0; // Disesuaikan agar lebih stabil
 
   @override
   void initState() {
     super.initState();
-    // Menerima state speaker dari CallingScreen
+    // Menerima state speaker dari CallingScreen (Perbaikan 2)
     _isSpeakerOn = widget.isInitialSpeakerOn; 
     
+    // TODO: (SOUND) Atur Audio Output ke Speaker jika _isSpeakerOn true, atau ke Earpiece jika false.
+    
     _startCallTimer();
-    // TODO: (SOUND) Mulai efek suara BERBICARA di sini (Ongoing)
   }
 
-  // Fungsi untuk memulai penghitung waktu utama
   void _startCallTimer() {
     _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
-        setState(() {
-          _secondsElapsed++;
-        });
+        setState(() => _secondsElapsed++);
       }
     });
   }
+  
+  // Fungsi Toggle Speaker (Perbaikan 3)
+  void _toggleSpeaker() {
+    setState(() {
+      _isSpeakerOn = !_isSpeakerOn;
+    });
+    // TODO: (SOUND) Atur Audio Output sesuai status _isSpeakerOn yang baru.
+  }
 
-  // Toggle Perekaman
   void _toggleRecording() {
-    if (_isRecording) {
-      // Stop Recording
-      _recordTimer?.cancel();
-      _recordSeconds = 0;
-    } else {
-      // Start Recording
-      _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted) {
-          setState(() {
-            _recordSeconds++;
-          });
-        }
-      });
-    }
     setState(() {
       _isRecording = !_isRecording;
     });
+
+    if (_isRecording) {
+      _recordSeconds = 0;
+      _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() => _recordSeconds++);
+        }
+      });
+    } else {
+      _recordTimer?.cancel();
+    }
   }
 
-  // Format waktu (misal: 01:21)
-  String _formatTime(int totalSeconds) {
-    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
-    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-
-  // Fungsi untuk menampilkan dialog konfirmasi
-  Future<void> _showEndCallConfirmation(BuildContext context) async {
-    // Memastikan timer berhenti saat dialog muncul
+  // Navigasi End Call (Perbaikan 1)
+  void _showEndCallConfirmation(BuildContext context) {
+    // Hentikan timer saat dialog muncul
     _callTimer?.cancel();
-    _recordTimer?.cancel(); // Hentikan timer perekaman juga
-    
-    final bool? endCall = await showDialog<bool>(
+    _recordTimer?.cancel();
+
+    showDialog(
       context: context,
-      useRootNavigator: true,
       builder: (BuildContext dialogContext) {
-        return const EndCallConfirmationDialog();
+        return EndCallConfirmationDialog(
+          // Callback saat tombol "Sure" di-tekan
+          onConfirm: () {
+            // 1. Tutup dialog konfirmasi
+            Navigator.of(dialogContext).pop(); 
+            
+            // 2. Navigasi GoRouter ke Emergency Screen (PERBAIKAN UTAMA)
+            context.go(AppRoutes.emergency); 
+          },
+          // Callback saat tombol "Cancel" di-tekan
+          onCancel: () {
+            // Tutup dialog
+            Navigator.of(dialogContext).pop();
+            // Lanjutkan timer
+            _startCallTimer(); 
+            if (_isRecording) {
+              _toggleRecording(); 
+            }
+          },
+        );
       },
     );
-
-    // Jika user menekan 'Sure' (true)
-    if (endCall == true) {
-      // NAVIGASI KEMBALI KE EMERGENCY SCREEN
-      // Menggunakan popUntil untuk membersihkan stack hingga rute '/emergency'
-      // TODO: (SOUND) Hentikan efek suara BERBICARA di sini
-      Navigator.of(context).popUntil((route) => route.settings.name == '/emergency');
-    } else {
-      // Jika user menekan 'Cancel', lanjutkan timer
-      _startCallTimer(); 
-      if (_isRecording) {
-        _toggleRecording(); // Lanjutkan timer perekaman jika sedang aktif
-      }
-    }
   }
 
   @override
   void dispose() {
     _callTimer?.cancel();
     _recordTimer?.cancel();
-    // TODO: (SOUND) Hentikan efek suara BERBICARA di sini
     super.dispose();
+  }
+  
+  String _formatTime(int seconds) {
+    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$secs';
   }
 
   @override
   Widget build(BuildContext context) {
     const darkGray = Color(0xFF333333);
-    const lightGray = Color(0xFF616161);
     const redColor = Color(0xFFE53935);
+    const lightGray = Color(0xFF616161);
     const activeIconColor = Colors.white;
 
     return Scaffold(
       backgroundColor: darkGray,
       appBar: AppBar(
+        toolbarHeight: 100.0,
         title: const Text(
-          'Ongoing Call ...',
-          style: TextStyle(color: activeIconColor, fontWeight: FontWeight.bold),
+          'Ongoing Call',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: darkGray,
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Avatar Placeholder
-            Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: lightGray,
-              ),
-              child: const Icon(Icons.person, size: 90, color: darkGray),
-            ),
-            const SizedBox(height: 20),
-
-            // Contact Name
-            const Text(
-              'Gensha', // Ganti dengan widget.contactName jika ada
-              style: TextStyle(
-                color: activeIconColor,
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 5),
-            
-            // Timer Utama
-            Text(
-              _formatTime(_secondsElapsed),
-              style: const TextStyle(color: Colors.white70, fontSize: 20),
-            ),
-            
-            // Indikator Perekaman
-            if (_isRecording)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Recording: ${_formatTime(_recordSeconds)}',
-                  style: const TextStyle(color: Colors.red, fontSize: 14),
-                ),
-              ),
-            
-            const SizedBox(height: 80),
-
-            // Call Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Speaker Button
-                _buildActionCircle(
-                  Icons.volume_up, 
-                  'Speaker', 
-                  lightGray,
-                  onTap: () => setState(() => _isSpeakerOn = !_isSpeakerOn),
-                  isActive: _isSpeakerOn,
+                // Avatar (Kontak)
+                Container(
+                  width: 150,
+                  height: 150,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
                 ),
-                // Send Location
-                _buildActionCircle(Icons.location_on, 'Send Location', lightGray),
-                // Record Button
-                _buildActionCircle(
-                  Icons.fiber_manual_record_outlined, 
-                  'Record', 
-                  lightGray,
-                  onTap: _toggleRecording,
-                  isActive: _isRecording,
+                const SizedBox(height: 20),
+
+                // Nama kontak
+                Text(
+                  contactName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
+                const SizedBox(height: 5),
+                
+                // Waktu Panggilan (Utama)
+                Text(
+                  _formatTime(_secondsElapsed),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 20,
+                  ),
+                ),
+                
+                // Record Timer (GAP/SPACE STABIL)
+                SizedBox(
+                  height: _recordTimerSpace, 
+                  child: Center(
+                    child: Visibility(
+                      visible: _isRecording,
+                      maintainState: true,
+                      maintainAnimation: true,
+                      maintainSize: true, 
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.mic, color: Colors.white, size: 18),
+                            const SizedBox(width: 5),
+                            Text(
+                              _formatTime(_recordSeconds),
+                              style: const TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ), 
+                
+                const SizedBox(height: _gapBeforeActions),
+
+                // Call Actions
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      // Speaker Button
+                      _buildActionCircle(
+                        Icons.volume_up,
+                        'Speaker',
+                        lightGray,
+                        onTap: _toggleSpeaker, // Panggil fungsi toggle speaker
+                        isActive: _isSpeakerOn, // Gunakan state _isSpeakerOn
+                      ),
+                      
+                      // Location Button
+                      _buildActionCircle(
+                        Icons.location_on, 
+                        'Location', 
+                        lightGray,
+                      ),
+                      
+                      // Record Button
+                      _buildActionCircle(
+                        Icons.fiber_manual_record,
+                        'Record',
+                        lightGray,
+                        onTap: _toggleRecording,
+                        isActive: _isRecording,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 50),
+
+                // End Call Button
+                GestureDetector(
+                  onTap: () => _showEndCallConfirmation(context),
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: redColor,
+                    ),
+                    child: const Icon(
+                      Icons.call_end,
+                      color: activeIconColor,
+                      size: 40,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
               ],
             ),
-            const SizedBox(height: 80),
-
-            // End Call Button
-            GestureDetector(
-              onTap: () => _showEndCallConfirmation(context),
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: redColor,
-                ),
-                child: const Icon(
-                  Icons.call_end,
-                  color: activeIconColor,
-                  size: 40,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -248,7 +298,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
         const SizedBox(height: 5),
         Text(
           label,
-          style: const TextStyle(color: activeColor, fontSize: 14),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
         ),
       ],
     );

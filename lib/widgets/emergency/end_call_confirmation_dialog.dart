@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 
 // --- Dialog Konfirmasi End Call ---
 class EndCallConfirmationDialog extends StatelessWidget {
-  const EndCallConfirmationDialog({super.key});
+  // Tambahkan kedua callback untuk konfirmasi dan batal
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel; 
+
+  const EndCallConfirmationDialog({
+    super.key,
+    required this.onConfirm,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +27,7 @@ class EndCallConfirmationDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'Are you sure wants to\nend the call?',
+            'Are you sure wants to\\nend the call?',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
@@ -33,45 +41,32 @@ class EndCallConfirmationDialog extends StatelessWidget {
             children: [
               // Button "Sure"
               TextButton(
-                onPressed: () {
-                  // Mengakhiri dialog dan mengembalikan 'true' (End Call)
-                  Navigator.of(context).pop(true);
-                },
+                onPressed: onConfirm, // Panggil callback onConfirm (akan navigasi)
                 style: TextButton.styleFrom(
-                  backgroundColor: primaryPurple,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 12,
-                  ),
+                  foregroundColor: Colors.white,
+                  backgroundColor: redColor,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                  minimumSize: const Size(100, 45),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                child: const Text(
-                  'Sure',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+                child: const Text('Sure'),
               ),
               // Button "Cancel"
               TextButton(
-                onPressed: () {
-                  // Mengakhiri dialog dan mengembalikan 'false' (Cancel)
-                  Navigator.of(context).pop(false);
-                },
+                onPressed: onCancel, // Panggil callback onCancel (akan melanjutkan timer)
                 style: TextButton.styleFrom(
-                  backgroundColor: redColor,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 12,
-                  ),
+                  foregroundColor: primaryPurple,
+                  backgroundColor: Colors.transparent,
+                  side: const BorderSide(color: primaryPurple, width: 2),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                  minimumSize: const Size(100, 45),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+                child: const Text('Cancel'),
               ),
             ],
           ),
@@ -81,12 +76,6 @@ class EndCallConfirmationDialog extends StatelessWidget {
   }
 }
 
-// --- Fungsi untuk Popover "Hold the button" (Dipanggil dari EmergencyCallScreen) ---
-// (File: lib/widgets/emergency/end_call_confirmation_dialog.dart)
-
-// ... (EndCallConfirmationDialog tetap sama)
-
-// --- Fungsi untuk Popover "Hold the button" (Diperbarui) ---
 void showHoldButtonDialog(BuildContext context) {
   const primaryPurple = Color(0xFF6A1B9A);
   

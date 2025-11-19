@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:safest/widgets/add_contact/add_contact_method_dialog.dart';
 import 'package:safest/widgets/profile/contact_detail_dialog.dart';
 import 'package:safest/models/emergency_contact.dart';
@@ -50,8 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // Fungsi untuk menampilkan Pop Up Detail Kontak
-  // DIUBAH: Menambahkan .then() untuk menangani refresh setelah delete
+  // .then() untuk menangani refresh setelah delete
   void _showContactDetailDialog(EmergencyContact contact) {
     showDialog(
       context: context,
@@ -66,107 +66,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
   
-  // --- UI BARU DIMULAI DARI SINI ---
-
   @override
   Widget build(BuildContext context) {
-    // Scaffold sekarang memiliki background putih/default
+    const primaryPurple = Color(0xFF4A148C);
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- Bagian 1: Header Putih ---
-            _buildCustomAppBar(),
-            _buildUserProfileHeader(), // Header profil (avatar, nama, id)
-
-            // --- Bagian 2: Konten Ungu ---
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  // Gunakan warna ungu solid
-                  color: Color(0xFF4A148C), // Warna ungu tua yang solid
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
+      body: CustomScrollView(
+        slivers: [
+          // --- Sliver AppBar (Layer Foto Profil) ---
+          SliverAppBar(
+            backgroundColor: Colors.white,
+            expandedHeight: 250.0, // Tinggi saat expanded
+            pinned: false, // Tidak dipin, hanya menghilang saat di-scroll
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+                icon: const Icon(Icons.keyboard_arrow_left_rounded, size: 30, color: Colors.black),
+                onPressed: () => context.pop(), // Aksi tombol kembali
+            ),
+            actions: [
+                IconButton(
+                    icon: const Icon(Icons.home_outlined, size: 24, color: Colors.black),
+                    onPressed: () => context.go('/home'), // Aksi tombol home
                 ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Judul Emergency Contact (warna putih)
-                      const Text(
-                        'Emergency Contact',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white, // Diubah
-                        ),
-                      ),
-                      const SizedBox(height: 15),
+                const SizedBox(width: 10),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              centerTitle: true,
+              titlePadding: EdgeInsets.zero,
+              collapseMode: CollapseMode.pin,
+              background: _buildUserProfileHeader(context), // Header Avatar + Nama
+            ),
+          ),
 
-                      _isLoading
-                          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                          : _buildEmergencyContactList(), // List kontak
-                      
-                      const SizedBox(height: 20),
+          // --- Sliver List (Layer Konten Ungu) ---
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: primaryPurple, 
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 20, bottom: 20, left: 20, right: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Judul Emergency Contact
+                    const Text('Emergency Contact', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 15),
 
-                      // Judul Personal Information (warna putih)
-                      const Text(
-                        'Personal Information',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white, // Diubah
-                        ),
-                      ),
-                      const SizedBox(height: 15),
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                        : _buildEmergencyContactList(), // List kontak
+                    
+                    const SizedBox(height: 20),
 
-                      _buildPersonalInformationBox(), // Box putih info
-                    ],
-                  ),
+                    // Judul Personal Information
+                    const Text('Personal Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 15),
+
+                    _buildPersonalInformationBox(), // Box putih info
+                    const SizedBox(height: 50), // Buffer space
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Widget AppBar Kustom (Tombol Back & Home)
-  Widget _buildCustomAppBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            // Warna ikon diubah jadi hitam
-            icon: const Icon(Icons.keyboard_arrow_left_rounded, size: 30, color: Colors.black),
-            onPressed: () {
-              // Aksi tombol kembali
-            },
-          ),
-          IconButton(
-            // Warna ikon diubah jadi hitam
-            icon: const Icon(Icons.home_outlined, size: 24, color: Colors.black),
-            onPressed: () {
-              // Aksi tombol home
-            },
           ),
         ],
       ),
     );
   }
 
-  // Widget Header Profil Pengguna (Avatar, Nama, ID)
-  Widget _buildUserProfileHeader() {
+  Widget _buildUserProfileHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 0, bottom: 20),
+      padding: const EdgeInsets.only(top: 100, bottom: 20), // Padding agar tidak tertutup AppBar
       alignment: Alignment.center,
       child: Column(
         children: [
@@ -174,47 +150,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 10),
           const Text(
             'Emma Watson',
-            // Warna teks diubah jadi hitam
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
           ),
           const SizedBox(height: 4),
-          _buildUserId(),
+          _buildUserId(context),
         ],
       ),
     );
   }
-  
-  Widget _buildUserAvatar() {
-    return Container(
-      width: 100,
-      height: 100,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        // Border putih dihilangkan sesuai desain baru
-        // border: Border.all(color: Colors.white, width: 3),
-        image: DecorationImage(
-          image: AssetImage('assets/avatar_pink.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
 
-  Widget _buildUserId() {
-    // Definisikan ID pengguna di sini agar bisa diakses
+  Widget _buildUserId(BuildContext context) {
     const String userId = 'A1B2C3D40';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          userId, // Gunakan variabel
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
+        const Text(userId, style: TextStyle(fontSize: 16, color: Colors.grey)),
         
-        // --- PERUBAHAN UTAMA DI SINI ---
-
-        // 1. Ganti Icon dengan IconButton untuk SALIN
         IconButton(
           icon: const Icon(Icons.copy, size: 16, color: Colors.grey),
           onPressed: () {
@@ -236,22 +188,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
           splashRadius: 16,
         ),
 
-        // 2. Ganti Icon dengan IconButton untuk EDIT
         IconButton(
           icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
           onPressed: () {
-            // Aksi untuk edit (jika ada)
-            // Contoh: _showEditProfileDialog();
+            // Aksi edit
           },
           constraints: const BoxConstraints(),
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           splashRadius: 16,
         ),
-
-        // --- AKHIR PERUBAHAN ---
       ],
     );
   }
+  
+  Widget _buildUserAvatar() {
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        // Border putih dihilangkan sesuai desain baru
+        // border: Border.all(color: Colors.white, width: 3),
+        image: DecorationImage(
+          image: AssetImage('assets/avatar_pink.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
 
   // Widget ini HANYA me-render list horizontal
   Widget _buildEmergencyContactList() {
