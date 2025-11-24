@@ -22,7 +22,7 @@ class CustomBottomNavBar extends StatelessWidget {
         // context.go(AppRoutes.liveVideo);
         break;
       case 3:
-        // context.go(AppRoutes.education);
+        context.go(AppRoutes.education);
         break;
       case 4:
         context.push(AppRoutes.emergency);
