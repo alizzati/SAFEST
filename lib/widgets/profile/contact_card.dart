@@ -3,7 +3,7 @@ import 'package:safest/models/emergency_contact.dart';
 
 // Widget untuk Contact Card
 class ContactCard extends StatelessWidget {
-  final EmergencyContact contact; 
+  final EmergencyContact contact;
 
   const ContactCard({super.key, required this.contact});
 
@@ -35,9 +35,26 @@ class ContactCard extends StatelessWidget {
                   height: 50,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: AssetImage('assets/avatar_pink.png'),
+                    color: Colors.grey[300], // Fallback color
+                    border: Border.all(
+                      color: const Color(0xFF6A1B9A), // Warna border (ungu)
+                      width: 2, // Ketebalan border
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/contact.png', // ✅ Ganti menjadi contact.png
+                      width: 50,
+                      height: 50,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback jika gambar tidak ditemukan
+                        return Icon(
+                          Icons.person,
+                          size: 30,
+                          color: Colors.grey[600],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -53,10 +70,7 @@ class ContactCard extends StatelessWidget {
                 ),
                 Text(
                   contact.relationship,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
             ),
@@ -90,11 +104,7 @@ class AddContactCard extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade300, width: 1),
         ),
         child: const Center(
-          child: Icon(
-            Icons.add,
-            size: 40,
-            color: Color(0xFF6A1B9A),
-          ),
+          child: Icon(Icons.add, size: 40, color: Color(0xFF6A1B9A)),
         ),
       ),
     );

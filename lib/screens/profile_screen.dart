@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:safest/config/routes.dart';
 import 'package:safest/widgets/add_contact/add_contact_method_dialog.dart';
 import 'package:safest/widgets/profile/contact_detail_dialog.dart';
 import 'package:safest/models/emergency_contact.dart';
 import 'package:safest/services/contact_service.dart';
 import 'package:safest/widgets/profile/contact_card.dart';
-import 'package:flutter/services.dart';  
+import 'package:flutter/services.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,6 +20,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<EmergencyContact> _contacts = [];
   bool _isLoading = true;
 
+  // Personal Information Data
+  String _firstName = 'Emma';
+  String _lastName = 'Watson';
+  String _phoneNumber = '628123456789010';
+  String _email = 'emma@gmail.com';
+  String _city = 'Gotham City';
+  String _country = 'Konoha Bahlilan';
+  String _streetAddress =
+      'Jalan Mulu jadian Kaga, Haram Akhi, Gotham City Karang ancur, Titanic, Konoha Bahlilan. 12345';
+  String _postCode = '12345';
+
   @override
   void initState() {
     super.initState();
@@ -28,16 +40,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadContacts() async {
     setState(() => _isLoading = true);
     final contactData = await _contactService.fetchContacts();
-    _contacts = contactData.map((data) => EmergencyContact(
-      name: data['name']!,
-      relationship: data['relationship']!,
-      avatarUrl: data['avatarUrl']!,
-      phoneNumber: data['phone_number'],
-    )).toList();
+    _contacts = contactData
+        .map(
+          (data) => EmergencyContact(
+            name: data['name']!,
+            relationship: data['relationship']!,
+            avatarUrl: data['avatarUrl']!,
+            phoneNumber: data['phone_number'],
+          ),
+        )
+        .toList();
     setState(() => _isLoading = false);
   }
 
-  // Fungsi untuk menampilkan Pop Up 1 (Pilih Metode)
   void _showAddContactDialog() {
     showDialog(
       context: context,
@@ -51,7 +66,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // .then() untuk menangani refresh setelah delete
   void _showContactDetailDialog(EmergencyContact contact) {
     showDialog(
       context: context,
@@ -59,77 +73,373 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return ContactDetailDialog(contact: contact);
       },
     ).then((deleted) {
-      // Jika dialog ditutup dan mengembalikan 'true' (artinya dihapus)
       if (deleted == true) {
-        _loadContacts(); // Refresh daftar kontak
+        _loadContacts();
       }
     });
   }
-  
+
+  void _showEditPersonalInfoDialog() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Controllers untuk form
+    final firstNameController = TextEditingController(text: _firstName);
+    final lastNameController = TextEditingController(text: _lastName);
+    final phoneController = TextEditingController(text: _phoneNumber);
+    final emailController = TextEditingController(text: _email);
+    final cityController = TextEditingController(text: _city);
+    final countryController = TextEditingController(text: _country);
+    final streetController = TextEditingController(text: _streetAddress);
+    final postCodeController = TextEditingController(text: _postCode);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(screenWidth * 0.05),
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: screenHeight * 0.85,
+              maxWidth: screenWidth * 0.9,
+            ),
+            padding: EdgeInsets.all(screenWidth * 0.05),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Edit Personal Information',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.045,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF4A148C),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(dialogContext),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                SizedBox(height: screenHeight * 0.02),
+
+                // Scrollable Form
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Form Fields
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                'First Name',
+                                firstNameController,
+                                screenWidth,
+                              ),
+                            ),
+                            SizedBox(width: screenWidth * 0.03),
+                            Expanded(
+                              child: _buildTextField(
+                                'Last Name',
+                                lastNameController,
+                                screenWidth,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: screenHeight * 0.015),
+
+                        _buildTextField(
+                          'Phone Number',
+                          phoneController,
+                          screenWidth,
+                        ),
+                        SizedBox(height: screenHeight * 0.015),
+
+                        _buildTextField('Email', emailController, screenWidth),
+                        SizedBox(height: screenHeight * 0.015),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                'City',
+                                cityController,
+                                screenWidth,
+                              ),
+                            ),
+                            SizedBox(width: screenWidth * 0.03),
+                            Expanded(
+                              child: _buildTextField(
+                                'Country',
+                                countryController,
+                                screenWidth,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: screenHeight * 0.015),
+
+                        _buildTextField(
+                          'Street Address',
+                          streetController,
+                          screenWidth,
+                          maxLines: 2,
+                        ),
+                        SizedBox(height: screenHeight * 0.015),
+
+                        _buildTextField(
+                          'Post Code',
+                          postCodeController,
+                          screenWidth,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: screenHeight * 0.02),
+
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[300],
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenHeight * 0.018,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              screenWidth * 0.02,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: screenWidth * 0.04,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: screenWidth * 0.03),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Update data
+                          setState(() {
+                            _firstName = firstNameController.text;
+                            _lastName = lastNameController.text;
+                            _phoneNumber = phoneController.text;
+                            _email = emailController.text;
+                            _city = cityController.text;
+                            _country = countryController.text;
+                            _streetAddress = streetController.text;
+                            _postCode = postCodeController.text;
+                          });
+                          Navigator.pop(dialogContext);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Personal information updated'),
+                              duration: Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A148C),
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenHeight * 0.018,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              screenWidth * 0.02,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Save',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: screenWidth * 0.04,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    double screenWidth, {
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: screenWidth * 0.035,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+          ),
+        ),
+        SizedBox(height: screenWidth * 0.02),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          style: TextStyle(fontSize: screenWidth * 0.035),
+          decoration: InputDecoration(
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.03,
+              vertical: screenWidth * 0.03,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              borderSide: const BorderSide(color: Color(0xFF4A148C)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     const primaryPurple = Color(0xFF4A148C);
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
-          // --- Sliver AppBar (Layer Foto Profil) ---
+          // Sliver AppBar
           SliverAppBar(
             backgroundColor: Colors.white,
-            expandedHeight: 250.0, // Tinggi saat expanded
-            pinned: false, // Tidak dipin, hanya menghilang saat di-scroll
+            expandedHeight: screenHeight * 0.30,
+            pinned: false,
             automaticallyImplyLeading: false,
             leading: IconButton(
-                icon: const Icon(Icons.keyboard_arrow_left_rounded, size: 30, color: Colors.black),
-                onPressed: () => context.pop(), // Aksi tombol kembali
+              icon: Icon(
+                Icons.keyboard_arrow_left_rounded,
+                size: screenWidth * 0.08,
+                color: Colors.black,
+              ),
+              onPressed: () => context.go(AppRoutes.home),
             ),
-            actions: [
-                IconButton(
-                    icon: const Icon(Icons.home_outlined, size: 24, color: Colors.black),
-                    onPressed: () => context.go('/home'), // Aksi tombol home
-                ),
-                const SizedBox(width: 10),
-            ],
+            actions: [SizedBox(width: screenWidth * 0.03)],
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
               titlePadding: EdgeInsets.zero,
               collapseMode: CollapseMode.pin,
-              background: _buildUserProfileHeader(context), // Header Avatar + Nama
+              background: _buildUserProfileHeader(
+                context,
+                screenWidth,
+                screenHeight,
+              ),
             ),
           ),
 
-          // --- Sliver List (Layer Konten Ungu) ---
+          // Sliver List
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
-                color: primaryPurple, 
+                color: primaryPurple,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(30),
                   topRight: Radius.circular(30),
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.only(top: 20, bottom: 20, left: 20, right: 20),
+                padding: EdgeInsets.all(screenWidth * 0.05),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Judul Emergency Contact
-                    const Text('Emergency Contact', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                    const SizedBox(height: 15),
+                    Text(
+                      'Emergency Contact',
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.05,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
 
                     _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                        : _buildEmergencyContactList(), // List kontak
-                    
-                    const SizedBox(height: 20),
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          )
+                        : _buildEmergencyContactList(screenHeight),
 
-                    // Judul Personal Information
-                    const Text('Personal Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                    const SizedBox(height: 15),
+                    SizedBox(height: screenHeight * 0.025),
 
-                    _buildPersonalInformationBox(), // Box putih info
-                    const SizedBox(height: 50), // Buffer space
+                    // Personal Information dengan tombol edit
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Personal Information',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.05,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: screenWidth * 0.05,
+                          ),
+                          onPressed: _showEditPersonalInfoDialog,
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.only(left: screenWidth * 0.02),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+
+                    _buildPersonalInformationBox(screenWidth, screenHeight),
+                    SizedBox(height: screenHeight * 0.05),
                   ],
                 ),
               ),
@@ -140,91 +450,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserProfileHeader(BuildContext context) {
+  Widget _buildUserProfileHeader(
+    BuildContext context,
+    double screenWidth,
+    double screenHeight,
+  ) {
     return Container(
-      padding: const EdgeInsets.only(top: 100, bottom: 20), // Padding agar tidak tertutup AppBar
+      padding: EdgeInsets.only(
+        top: screenHeight * 0.12,
+        left: screenWidth * 0.05,
+        right: screenWidth * 0.05,
+      ),
       alignment: Alignment.center,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildUserAvatar(),
-          const SizedBox(height: 10),
-          const Text(
+          _buildUserAvatar(screenWidth),
+          SizedBox(height: screenHeight * 0.01),
+          Text(
             'Emma Watson',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+            style: TextStyle(
+              fontSize: screenWidth * 0.06,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
-          const SizedBox(height: 4),
-          _buildUserId(context),
+          SizedBox(height: screenHeight * 0.005),
+          _buildUserId(context, screenWidth),
         ],
       ),
     );
   }
 
-  Widget _buildUserId(BuildContext context) {
+  Widget _buildUserId(BuildContext context, double screenWidth) {
     const String userId = 'A1B2C3D40';
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(userId, style: TextStyle(fontSize: 16, color: Colors.grey)),
-        
-        IconButton(
-          icon: const Icon(Icons.copy, size: 16, color: Colors.grey),
-          onPressed: () {
-            // Aksi untuk menyalin
+        Flexible(
+          child: Text(
+            userId,
+            style: TextStyle(fontSize: screenWidth * 0.038, color: Colors.grey),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        SizedBox(width: screenWidth * 0.01),
+        InkWell(
+          onTap: () {
             Clipboard.setData(const ClipboardData(text: userId));
-            
-            // Tampilkan notifikasi (SnackBar)
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('User ID copied to clipboard'),
                 duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating, // Agar snackbar mengambang
+                behavior: SnackBarBehavior.floating,
               ),
             );
           },
-          // Mengurangi padding default IconButton agar lebih rapat
-          constraints: const BoxConstraints(),
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          splashRadius: 16,
+          child: Icon(
+            Icons.copy,
+            size: screenWidth * 0.038,
+            color: Colors.grey,
+          ),
         ),
-
-        IconButton(
-          icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
-          onPressed: () {
-            // Aksi edit
-          },
-          constraints: const BoxConstraints(),
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          splashRadius: 16,
-        ),
+        SizedBox(width: screenWidth * 0.015),
       ],
     );
   }
-  
-  Widget _buildUserAvatar() {
+
+  Widget _buildUserAvatar(double screenWidth) {
     return Container(
-      width: 100,
-      height: 100,
-      decoration: const BoxDecoration(
+      width: screenWidth * 0.25,
+      height: screenWidth * 0.25,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: const Color(0xFF6A1B9A), // Warna border (ungu)
+          width: 3, // Ketebalan border
+        ),
         shape: BoxShape.circle,
-        // Border putih dihilangkan sesuai desain baru
-        // border: Border.all(color: Colors.white, width: 3),
-        image: DecorationImage(
-          image: AssetImage('assets/avatar_pink.png'),
+        image: const DecorationImage(
+          image: AssetImage(
+            'assets/images/person.png',
+          ), // ✅ Ganti dengan gambar dari asset
           fit: BoxFit.cover,
         ),
       ),
     );
   }
 
-
-  // Widget ini HANYA me-render list horizontal
-  Widget _buildEmergencyContactList() {
+  Widget _buildEmergencyContactList(double screenHeight) {
     return SizedBox(
-      height: 120,
+      height: screenHeight * 0.15,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 0), // Dihapus paddingnya
+        padding: EdgeInsets.zero,
         itemCount: _contacts.length + 1,
         itemBuilder: (context, index) {
           if (index < _contacts.length) {
@@ -240,22 +560,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Widget ini HANYA me-render box putih
-  Widget _buildPersonalInformationBox() {
+  Widget _buildPersonalInformationBox(double screenWidth, double screenHeight) {
     return Container(
-      height: 150,
+      padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(screenWidth * 0.04),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1), // Shadow sedikit lebih jelas
+            color: Colors.black.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 5,
           ),
         ],
       ),
-      // Konten Informasi Pribadi
+      child: Column(
+        children: [
+          // First Name & Last Name
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoItem('First Name', _firstName, screenWidth),
+              ),
+              SizedBox(width: screenWidth * 0.04),
+              Expanded(
+                child: _buildInfoItem('Last Name', _lastName, screenWidth),
+              ),
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.02),
+
+          // Phone Number & Email
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoItem(
+                  'Phone Number',
+                  _phoneNumber,
+                  screenWidth,
+                ),
+              ),
+              SizedBox(width: screenWidth * 0.04),
+              Expanded(child: _buildInfoItem('Email', _email, screenWidth)),
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.02),
+
+          // City & Country
+          Row(
+            children: [
+              Expanded(child: _buildInfoItem('City', _city, screenWidth)),
+              SizedBox(width: screenWidth * 0.04),
+              Expanded(child: _buildInfoItem('Country', _country, screenWidth)),
+            ],
+          ),
+          SizedBox(height: screenHeight * 0.02),
+
+          // Street Address
+          _buildInfoItem('Street Address', _streetAddress, screenWidth),
+          SizedBox(height: screenHeight * 0.02),
+
+          // Post Code
+          _buildInfoItem('Post Code', _postCode, screenWidth),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value, double screenWidth) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: screenWidth * 0.035,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: screenWidth * 0.01),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: screenWidth * 0.032,
+            color: Colors.grey[700],
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

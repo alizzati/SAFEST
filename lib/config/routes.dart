@@ -39,7 +39,7 @@ GoRouter createRouter() {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.liveVideo,
+    initialLocation: AppRoutes.profile,
 
     routes: [
       GoRoute(
@@ -80,6 +80,10 @@ GoRouter createRouter() {
         builder: (context, state) => const LiveVideoScreen(),
       ),
       GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.ongoingCall,
         name: 'ongoing_call',
         builder: (context, state) {
@@ -110,10 +114,6 @@ GoRouter createRouter() {
           GoRoute(
             path: AppRoutes.education,
             builder: (context, state) => const EducationScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.profile,
-            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),
