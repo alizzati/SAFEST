@@ -19,7 +19,7 @@ class CustomBottomNavBar extends StatelessWidget {
         context.go(AppRoutes.setFake);
         break;
       case 2:
-        // context.go(AppRoutes.liveVideo);
+        _showLiveVideoConfirmation(context);
         break;
       case 3:
         context.go(AppRoutes.education);
@@ -28,6 +28,135 @@ class CustomBottomNavBar extends StatelessWidget {
         context.push(AppRoutes.emergency);
         break;
     }
+  }
+
+  void _showLiveVideoConfirmation(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final Color purpleColor = const Color(0xFF512DAB);
+    final Color redColor = const Color(0xFFC62828);
+    final Color greenColor = const Color(0xFF4CAF50);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(screenWidth * 0.04),
+          ),
+          contentPadding: EdgeInsets.all(screenWidth * 0.06),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Live Video
+              Container(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                decoration: BoxDecoration(
+                  color: purpleColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.videocam,
+                  size: screenWidth * 0.15,
+                  color: purpleColor,
+                ),
+              ),
+
+              SizedBox(height: screenWidth * 0.05),
+
+              // Judul
+              Text(
+                'Start Live Emergency Video?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: screenWidth * 0.05,
+                  fontWeight: FontWeight.bold,
+                  color: purpleColor,
+                ),
+              ),
+
+              SizedBox(height: screenWidth * 0.03),
+
+              // Deskripsi
+              Text(
+                'This will broadcast your live video and location to your emergency contacts.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: screenWidth * 0.035,
+                  color: Colors.grey[700],
+                ),
+              ),
+
+              SizedBox(height: screenWidth * 0.06),
+
+              // Tombol
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Tombol Cancel
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: redColor,
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenWidth * 0.035,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            screenWidth * 0.02,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: screenWidth * 0.04,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(width: screenWidth * 0.03),
+
+                  // Tombol Yes, Start
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        context.go(AppRoutes.liveVideo);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: greenColor,
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenWidth * 0.035,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            screenWidth * 0.02,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'Yes, Start',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: screenWidth * 0.04,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   int _getCurrentIndex(BuildContext context) {

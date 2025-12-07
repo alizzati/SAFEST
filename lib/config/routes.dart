@@ -27,7 +27,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String setFake = '/set_fake';
   static const String ongoingCall = '/ongoing_call';
-  static const String liveVideo = '/liveVideo';
+  static const String liveVideo = '/live_video';
   static const String education = '/education';
   static const String personalInfo = '/personal-info';
   static const String emergencyContact = '/emergency-contact';
@@ -39,7 +39,7 @@ GoRouter createRouter() {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.calling,
+    initialLocation: AppRoutes.liveVideo,
 
     routes: [
       GoRoute(
@@ -76,6 +76,10 @@ GoRouter createRouter() {
         builder: (context, state) => const CallingScreen(),
       ),
       GoRoute(
+        path: AppRoutes.liveVideo,
+        builder: (context, state) => const LiveVideoScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.ongoingCall,
         name: 'ongoing_call',
         builder: (context, state) {
@@ -102,10 +106,7 @@ GoRouter createRouter() {
             path: AppRoutes.setFake,
             builder: (context, state) => const SetFakeCallScreen(),
           ),
-          GoRoute(
-            path: AppRoutes.liveVideo,
-            builder: (context, state) => const LiveVideoScreen(),
-          ),
+
           GoRoute(
             path: AppRoutes.education,
             builder: (context, state) => const EducationScreen(),
