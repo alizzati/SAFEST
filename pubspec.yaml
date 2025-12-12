@@ -11,6 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Firebase
+  firebase_core: ^4.2.1
+  firebase_auth: ^6.1.2
+  google_sign_in: ^6.2.1
+  cloud_firestore: ^6.1.0
+
   # Routing
   go_router: ^14.3.0
 

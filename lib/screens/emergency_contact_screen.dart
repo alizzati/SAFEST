@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:safest/config/routes.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_dropdown.dart';
 import '../widgets/gradient_button.dart';
 import '../utils/validators.dart';
+import '../config/routes.dart';
 
 class EmergencyContactScreen extends StatefulWidget {
   const EmergencyContactScreen({super.key});
@@ -16,6 +18,7 @@ class EmergencyContactScreen extends StatefulWidget {
 
 class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   final TextEditingController _contactNameController = TextEditingController();
   final TextEditingController _contactPhoneController = TextEditingController();
@@ -36,35 +39,61 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     super.dispose();
   }
 
-  void _handleSave() {
+  void _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Simulasikan penyimpanan
-    print('Emergency Contact Name: ${_contactNameController.text}');
-    print('Emergency Contact Phone: ${_contactPhoneController.text}');
-    print('Relationship: $_selectedRelationship');
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) context.go(AppRoutes.signIn);
+      return;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.white),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text('Emergency contact saved successfully!'),
+    setState(() { _isLoading = true; });
+
+    final Map<String, dynamic> emergencyContactsData = {
+      'contact_1': {
+        'name': _contactNameController.text.trim(),
+        'phone': _contactPhoneController.text.trim(),
+        'relationship': _selectedRelationship,
+      },
+    };
+
+    try {
+      // Update Firestore → simpan emergency contact & set profileComplete: true
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'emergencyContacts': emergencyContactsData,
+        'profileComplete': true,  // pastikan ini TRUE
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Onboarding complete! Welcome to Safest.')),
+              ],
             ),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      context.go(AppRoutes.home);
-    });
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // langsung ke home
+        context.go(AppRoutes.home);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -96,7 +125,6 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ==================== HEADER ====================
                       Text(
                         'Emergency\nContacts',
                         style: TextStyle(
@@ -107,9 +135,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                           height: 1.2,
                         ),
                       ),
-
                       SizedBox(height: screenHeight * 0.02),
-
                       Text(
                         'Provide a contact we can reach in case of emergencies.',
                         style: TextStyle(
@@ -120,10 +146,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                           height: 1.5,
                         ),
                       ),
-
                       SizedBox(height: screenHeight * 0.03),
-
-                      // ==================== FORM ====================
                       Text(
                         'Emergency Contact Name',
                         style: TextStyle(
@@ -134,7 +157,6 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                         ),
                       ),
                       SizedBox(height: screenHeight * 0.01),
-
                       CustomTextField(
                         controller: _contactNameController,
                         labelText: "Enter contact’s full name",
@@ -144,9 +166,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                         screenWidth: screenWidth,
                         screenHeight: screenHeight,
                       ),
-
                       SizedBox(height: screenHeight * 0.02),
-
                       Text(
                         'Emergency Contact Phone Number',
                         style: TextStyle(
@@ -157,7 +177,6 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                         ),
                       ),
                       SizedBox(height: screenHeight * 0.01),
-
                       CustomTextField(
                         controller: _contactPhoneController,
                         labelText: "Enter contact’s phone number",
@@ -167,9 +186,7 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                         screenWidth: screenWidth,
                         screenHeight: screenHeight,
                       ),
-
                       SizedBox(height: screenHeight * 0.02),
-
                       Text(
                         'Relationship with Contact',
                         style: TextStyle(
@@ -180,7 +197,6 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                         ),
                       ),
                       SizedBox(height: screenHeight * 0.01),
-
                       CustomDropdown(
                         value: _selectedRelationship,
                         labelText: 'Select relationship',
@@ -200,19 +216,15 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                         screenWidth: screenWidth,
                         screenHeight: screenHeight,
                       ),
-
                       SizedBox(height: screenHeight * 0.03),
-
                       GradientButton(
                         text: 'Save',
-                        onPressed: _handleSave,
+                        onPressed: _isLoading ? null : _handleSave,
                         width: double.infinity,
                         height: screenHeight * 0.065,
                         fontSize: isLargeScreen ? 16 : 18,
                       ),
-
                       SizedBox(height: screenHeight * 0.02),
-
                       Center(
                         child: Text(
                           'Need to add more contacts? You can do this anytime in your profile settings.',

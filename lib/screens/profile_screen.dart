@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:safest/config/routes.dart';
@@ -43,12 +44,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _contacts = contactData
         .map(
           (data) => EmergencyContact(
-            name: data['name']!,
-            relationship: data['relationship']!,
-            avatarUrl: data['avatarUrl']!,
-            phoneNumber: data['phone_number'],
-          ),
-        )
+        name: data['name']!,
+        relationship: data['relationship']!,
+        avatarUrl: data['avatarUrl']!,
+        phoneNumber: data['phone_number'],
+      ),
+    )
         .toList();
     setState(() => _isLoading = false);
   }
@@ -241,7 +242,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          // Update data
                           setState(() {
                             _firstName = firstNameController.text;
                             _lastName = lastNameController.text;
@@ -293,11 +293,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTextField(
-    String label,
-    TextEditingController controller,
-    double screenWidth, {
-    int maxLines = 1,
-  }) {
+      String label,
+      TextEditingController controller,
+      double screenWidth, {
+        int maxLines = 1,
+      }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -347,7 +347,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
-          // Sliver AppBar
           SliverAppBar(
             backgroundColor: Colors.white,
             expandedHeight: screenHeight * 0.30,
@@ -361,20 +360,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               onPressed: () => context.go(AppRoutes.home),
             ),
-            actions: [SizedBox(width: screenWidth * 0.03)],
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
-              titlePadding: EdgeInsets.zero,
-              collapseMode: CollapseMode.pin,
-              background: _buildUserProfileHeader(
-                context,
-                screenWidth,
-                screenHeight,
-              ),
+              background: _buildUserProfileHeader(screenWidth, screenHeight),
             ),
           ),
-
-          // Sliver List
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
@@ -398,18 +388,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     SizedBox(height: screenHeight * 0.02),
-
                     _isLoading
                         ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          )
-                        : _buildEmergencyContactList(screenHeight),
-
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                      ),
+                    )
+                        : SizedBox(
+                      height: screenHeight * 0.15,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _contacts.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index < _contacts.length) {
+                            return GestureDetector(
+                              onTap: () =>
+                                  _showContactDetailDialog(_contacts[index]),
+                              child: ContactCard(contact: _contacts[index]),
+                            );
+                          } else {
+                            return AddContactCard(
+                                onTap: _showAddContactDialog);
+                          }
+                        },
+                      ),
+                    ),
                     SizedBox(height: screenHeight * 0.025),
-
-                    // Personal Information dengan tombol edit
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -431,14 +435,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             size: screenWidth * 0.05,
                           ),
                           onPressed: _showEditPersonalInfoDialog,
-                          constraints: const BoxConstraints(),
-                          padding: EdgeInsets.only(left: screenWidth * 0.02),
                         ),
                       ],
                     ),
                     SizedBox(height: screenHeight * 0.02),
-
                     _buildPersonalInformationBox(screenWidth, screenHeight),
+
+                    // Logout Button
+                    SizedBox(height: screenHeight * 0.03),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                        context.go(AppRoutes.signIn);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC62828),
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.02,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                        ),
+                      ),
+                      child: Text(
+                        'Logout',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: screenWidth * 0.045,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
                     SizedBox(height: screenHeight * 0.05),
                   ],
                 ),
@@ -450,11 +478,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserProfileHeader(
-    BuildContext context,
-    double screenWidth,
-    double screenHeight,
-  ) {
+  Widget _buildUserProfileHeader(double screenWidth, double screenHeight) {
     return Container(
       padding: EdgeInsets.only(
         top: screenHeight * 0.12,
@@ -476,15 +500,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           SizedBox(height: screenHeight * 0.005),
-          _buildUserId(context, screenWidth),
+          _buildUserId(screenWidth),
         ],
       ),
     );
   }
 
-  Widget _buildUserId(BuildContext context, double screenWidth) {
-    const String userId = 'A1B2C3D40';
+  Widget _buildUserAvatar(double screenWidth) {
+    return Container(
+      width: screenWidth * 0.25,
+      height: screenWidth * 0.25,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: const Color(0xFF6A1B9A),
+          width: 3,
+        ),
+        shape: BoxShape.circle,
+        image: const DecorationImage(
+          image: AssetImage('assets/images/person.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
 
+  Widget _buildUserId(double screenWidth) {
+    const String userId = 'A1B2C3D40';
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -519,47 +560,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserAvatar(double screenWidth) {
-    return Container(
-      width: screenWidth * 0.25,
-      height: screenWidth * 0.25,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: const Color(0xFF6A1B9A), // Warna border (ungu)
-          width: 3, // Ketebalan border
-        ),
-        shape: BoxShape.circle,
-        image: const DecorationImage(
-          image: AssetImage(
-            'assets/images/person.png',
-          ), // ✅ Ganti dengan gambar dari asset
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmergencyContactList(double screenHeight) {
-    return SizedBox(
-      height: screenHeight * 0.15,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.zero,
-        itemCount: _contacts.length + 1,
-        itemBuilder: (context, index) {
-          if (index < _contacts.length) {
-            return GestureDetector(
-              onTap: () => _showContactDetailDialog(_contacts[index]),
-              child: ContactCard(contact: _contacts[index]),
-            );
-          } else {
-            return AddContactCard(onTap: _showAddContactDialog);
-          }
-        },
-      ),
-    );
-  }
-
   Widget _buildPersonalInformationBox(double screenWidth, double screenHeight) {
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
@@ -576,37 +576,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          // First Name & Last Name
           Row(
             children: [
-              Expanded(
-                child: _buildInfoItem('First Name', _firstName, screenWidth),
-              ),
+              Expanded(child: _buildInfoItem('First Name', _firstName, screenWidth)),
               SizedBox(width: screenWidth * 0.04),
-              Expanded(
-                child: _buildInfoItem('Last Name', _lastName, screenWidth),
-              ),
+              Expanded(child: _buildInfoItem('Last Name', _lastName, screenWidth)),
             ],
           ),
           SizedBox(height: screenHeight * 0.02),
-
-          // Phone Number & Email
           Row(
             children: [
-              Expanded(
-                child: _buildInfoItem(
-                  'Phone Number',
-                  _phoneNumber,
-                  screenWidth,
-                ),
-              ),
+              Expanded(child: _buildInfoItem('Phone Number', _phoneNumber, screenWidth)),
               SizedBox(width: screenWidth * 0.04),
               Expanded(child: _buildInfoItem('Email', _email, screenWidth)),
             ],
           ),
           SizedBox(height: screenHeight * 0.02),
-
-          // City & Country
           Row(
             children: [
               Expanded(child: _buildInfoItem('City', _city, screenWidth)),
@@ -615,12 +600,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           SizedBox(height: screenHeight * 0.02),
-
-          // Street Address
           _buildInfoItem('Street Address', _streetAddress, screenWidth),
           SizedBox(height: screenHeight * 0.02),
-
-          // Post Code
           _buildInfoItem('Post Code', _postCode, screenWidth),
         ],
       ),
@@ -642,10 +623,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SizedBox(height: screenWidth * 0.01),
         Text(
           value,
-          style: TextStyle(
-            fontSize: screenWidth * 0.032,
-            color: Colors.grey[700],
-          ),
+          style: TextStyle(fontSize: screenWidth * 0.032, color: Colors.grey[700]),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
