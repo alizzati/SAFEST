@@ -10,6 +10,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -21,17 +22,25 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  
+  // Notifikasi Plugin
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
   String? _currentlyPlayingCardId;
   bool _isSirenePlaying = false; 
-  Position? _currentPosition;
+  Position? _currentPosition; // Variabel ini sekarang akan sinkron
   
   final Color _purpleColor = const Color(0xFF512DAB);
   final Color _redColor = const Color(0xFFC62828);
   final Color _greenColor = const Color(0xFF4CAF50);
 
+  LatLng? _currentLocation;
+  bool _locationEnabled = false;
+
   @override
   void initState() {
     super.initState();
+    _initializeNotifications(); // Inisialisasi notifikasi
     _getCurrentLocation();
 
     Timer.periodic(const Duration(seconds: 2), (timer) async {
@@ -39,21 +48,55 @@ class _HomeScreenState extends State<HomeScreen> {
         timer.cancel();
         return;
       }
-
       await _getCurrentLocation();
     });
   }
 
-  LatLng? _currentLocation;
-  bool _locationEnabled = false;
+  // --- 1. INISIALISASI NOTIFIKASI ---
+  void _initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher'); // Pastikan icon ada
 
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  // --- 2. MENAMPILKAN NOTIFIKASI ---
+  Future<void> _showNotification() async {
+    const AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      'share_location_channel', // Channel ID
+      'Live Location Sharing',  // Channel Name
+      channelDescription: 'Notifications for live location sharing',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+      color: Color(0xFF512DAB),
+    );
+
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidNotificationDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      0, // Notification ID
+      'Live Location Active', // Title (Sesuai gambar: Warning S.O.S Alert!)
+      'Your live location is currently being shared with selected contacts.', // Body
+      notificationDetails,
+    );
+  }
+
+  // --- 3. PERBAIKAN LOGIKA LOKASI ---
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      setState(() => _locationEnabled = false);
+      if (mounted) setState(() => _locationEnabled = false);
       return;
     }
 
@@ -61,24 +104,64 @@ class _HomeScreenState extends State<HomeScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        setState(() => _locationEnabled = false);
+        if (mounted) setState(() => _locationEnabled = false);
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      setState(() => _locationEnabled = false);
+      if (mounted) setState(() => _locationEnabled = false);
       return;
     }
 
+    // Ambil lokasi
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
 
-    setState(() {
-      _currentLocation = LatLng(position.latitude, position.longitude);
-      _locationEnabled = true;
-    });
+    if (mounted) {
+      setState(() {
+        // Update KEDUA variabel agar sinkron
+        _currentPosition = position; 
+        _currentLocation = LatLng(position.latitude, position.longitude);
+        _locationEnabled = true;
+      });
+    }
+  }
+
+  // --- 4. LOGIKA SHARE LOCATION YANG DIPERBAIKI ---
+  void _shareCurrentLocation() async {
+    // Cek ketersediaan lokasi
+    if (_currentPosition == null && _currentLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mencari lokasi... Harap tunggu.')),
+      );
+      await _getCurrentLocation(); // Coba paksa update
+      return;
+    }
+
+    // Gunakan data yang tersedia
+    final lat = _currentPosition?.latitude ?? _currentLocation!.latitude;
+    final lon = _currentPosition?.longitude ?? _currentLocation!.longitude;
+    
+    // Link Google Maps yang valid
+    final mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lon';
+    
+    final textToShare = '🚨 EMERGENCY ALERT 🚨\n\nSaya sedang dalam situasi darurat. Berikut adalah lokasi terkini saya:\n$mapsUrl';
+
+    try {
+      // Share UI
+      await Share.share(textToShare);
+      
+      // Tampilkan Notifikasi Berhasil
+      _showNotification();
+      
+    } catch (e) {
+      print("Error sharing location: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal berbagi lokasi.')),
+      );
+    }
   }
 
   void _playCardAudio(SoundItem soundItem) async {
@@ -100,36 +183,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print('❌ Error playing audio: $e');
-    }
-  }
-  void _shareCurrentLocation() async {
-    // 1. Cek apakah lokasi sudah tersedia
-    if (_currentPosition == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lokasi belum tersedia. Coba lagi.')),
-      );
-      return;
-    }
-
-    // 2. Ambil koordinat
-    final lat = _currentPosition!.latitude;
-    final lon = _currentPosition!.longitude;
-    
-    // 3. Buat tautan Google Maps
-    // Format URL: https://maps.google.com/?q=<latitude>,<longitude>
-    final mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lon';
-    
-    final textToShare = 'Lihat lokasi saya saat ini:\n$mapsUrl';
-
-    // 4. Panggil fungsi berbagi
-    try {
-      // Memanggil library Share untuk membuka dialog berbagi sistem
-      await Share.share(textToShare);
-    } catch (e) {
-      print("Error sharing location: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal berbagi lokasi.')),
-      );
     }
   }
 

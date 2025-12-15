@@ -36,7 +36,7 @@ class ContactCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     image: DecorationImage(
-                      image: AssetImage('assets/avatar_pink.png'),
+                      image: AssetImage('assets/images/ceww.png'),
                       fit: BoxFit.cover,
                     ),
                   ),

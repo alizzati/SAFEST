@@ -1,11 +1,11 @@
-// (File: main.dart)
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'config/routes.dart'; // Asumsi file ini berisi fungsi createRouter()
-// ... (imports lainnya)
+import 'package:firebase_core/firebase_core.dart'; 
+import 'config/routes.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -14,9 +14,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Ambil router configuration
-    final GoRouter router =
-        createRouter(); // Asumsi fungsi ini didefinisikan di config/routes.dart
+    final GoRouter router = createRouter(); 
 
     return MaterialApp.router(
       title: 'Safest',
@@ -26,9 +24,6 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-
-      // 2. HAPUS properti 'initialRoute' dan 'routes' yang lama
-      // 3. Masukkan routerConfig ke MaterialApp.router
       routerConfig: router,
     );
   }

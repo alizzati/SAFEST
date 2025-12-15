@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import 'package:safest/widgets/add_contact/add_contact_method_dialog.dart';
+import 'package:safest/widgets/add_contact/add_contact_form_dialog.dart';
 import 'package:safest/widgets/profile/contact_detail_dialog.dart';
 import 'package:safest/models/emergency_contact.dart';
 import 'package:safest/services/contact_service.dart';
 import 'package:safest/widgets/profile/contact_card.dart';
-import 'package:flutter/services.dart';  
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,117 +20,190 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<EmergencyContact> _contacts = [];
   bool _isLoading = true;
 
+  static const Color _primaryPurple = Color(0xFF512DA8);
+
   @override
   void initState() {
     super.initState();
     _loadContacts();
   }
 
+  // --- LOGIC LOAD CONTACTS ---
   Future<void> _loadContacts() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
-    final contactData = await _contactService.fetchContacts();
-    _contacts = contactData.map((data) => EmergencyContact(
-      name: data['name']!,
-      relationship: data['relationship']!,
-      avatarUrl: data['avatarUrl']!,
-      phoneNumber: data['phone_number'],
-    )).toList();
-    setState(() => _isLoading = false);
+    try {
+      final contactData = await _contactService.fetchContacts();
+
+      if (mounted) {
+        setState(() {
+          _contacts = contactData.map((data) {
+            return EmergencyContact(
+              name: data['name'] ?? 'Unknown',
+              relationship: data['relationship'] ?? '',
+              avatarUrl: data['avatarUrl'] ?? 'assets/images/avatar_pink.png',
+              phoneNumber: data['phone_number'],
+              userId: data['user_id'],
+            );
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading contacts: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  // Fungsi untuk menampilkan Pop Up 1 (Pilih Metode)
-  void _showAddContactDialog() {
-    showDialog(
+  // --- LOGIC DIALOG ADD CONTACT ---
+  Future<void> _showAddContactDialog() async {
+    // Tampilkan Dialog Metode (Phone vs ID) dan mengembalikan Enum 'AddContactMode' atau null jika dicancel
+    final AddContactMode? selectedMode = await showDialog<AddContactMode>(
       context: context,
+      useRootNavigator: true,
       builder: (BuildContext context) {
         return const AddContactMethodDialog();
       },
-    ).then((added) {
-      if (added == true) {
+    );
+
+    // buka Form Dialog Mode Dipilih
+    if (selectedMode != null && mounted) {
+      final bool? isSuccess = await showDialog<bool>(
+        context: context,
+        useRootNavigator: true,
+        builder: (BuildContext context) {
+          return AddContactFormDialog(mode: selectedMode);
+        },
+      );
+
+      if (isSuccess == true) {
+        _loadContacts();
+      }
+    }
+  }
+
+  // --- LOGIC MENAMPILKAN DETAIL ---
+  void _showContactDetailDialog(EmergencyContact contact) {
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      builder: (BuildContext context) {
+        return ContactDetailDialog(contact: contact);
+      },
+    ).then((deleted) {
+      // Refresh jika kontak dihapus
+      if (deleted == true) {
         _loadContacts();
       }
     });
   }
 
-  // .then() untuk menangani refresh setelah delete
-  void _showContactDetailDialog(EmergencyContact contact) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return ContactDetailDialog(contact: contact);
-      },
-    ).then((deleted) {
-      // Jika dialog ditutup dan mengembalikan 'true' (artinya dihapus)
-      if (deleted == true) {
-        _loadContacts(); // Refresh daftar kontak
-      }
-    });
+  void _navigateToPersonalInfo() {
+    context.push('/personal-info');
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    const primaryPurple = Color(0xFF4A148C);
-
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: _primaryPurple,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.keyboard_arrow_left,
+            size: 30,
+            color: Colors.black,
+          ),
+          onPressed: () => context.pop(),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.home_outlined,
+              size: 28,
+              color: Colors.black,
+            ),
+            onPressed: () => context.go('/home'),
+          ),
+          const SizedBox(width: 10),
+        ],
+      ),
       body: CustomScrollView(
         slivers: [
-          // --- Sliver AppBar (Layer Foto Profil) ---
-          SliverAppBar(
-            backgroundColor: Colors.white,
-            expandedHeight: 250.0, // Tinggi saat expanded
-            pinned: false, // Tidak dipin, hanya menghilang saat di-scroll
-            automaticallyImplyLeading: false,
-            leading: IconButton(
-                icon: const Icon(Icons.keyboard_arrow_left_rounded, size: 30, color: Colors.black),
-                onPressed: () => context.pop(), // Aksi tombol kembali
-            ),
-            actions: [
-                IconButton(
-                    icon: const Icon(Icons.home_outlined, size: 24, color: Colors.black),
-                    onPressed: () => context.go('/home'), // Aksi tombol home
-                ),
-                const SizedBox(width: 10),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: true,
-              titlePadding: EdgeInsets.zero,
-              collapseMode: CollapseMode.pin,
-              background: _buildUserProfileHeader(context), // Header Avatar + Nama
-            ),
-          ),
-
-          // --- Sliver List (Layer Konten Ungu) ---
-          SliverToBoxAdapter(
+          SliverToBoxAdapter(child: _buildUserProfileHeader()),
+          SliverFillRemaining(
+            hasScrollBody: false,
             child: Container(
+              margin: const EdgeInsets.only(top: 20),
               decoration: const BoxDecoration(
-                color: primaryPurple, 
+                color: _primaryPurple,
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+                  topLeft: Radius.circular(40),
+                  topRight: Radius.circular(40),
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.only(top: 20, bottom: 20, left: 20, right: 20),
+                padding: const EdgeInsets.fromLTRB(25, 30, 25, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Judul Emergency Contact
-                    const Text('Emergency Contact', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const Text(
+                      'Emergency Contact',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                     const SizedBox(height: 15),
 
+                    // LIST CONTACT
                     _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                        : _buildEmergencyContactList(), // List kontak
-                    
-                    const SizedBox(height: 20),
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : _buildEmergencyContactList(),
 
-                    // Judul Personal Information
-                    const Text('Personal Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 25),
 
-                    _buildPersonalInformationBox(), // Box putih info
-                    const SizedBox(height: 50), // Buffer space
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Personal Information',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _navigateToPersonalInfo,
+                          icon: const Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    _buildPersonalInformationBox(),
                   ],
                 ),
               ),
@@ -140,97 +214,112 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserProfileHeader(BuildContext context) {
+  Widget _buildUserProfileHeader() {
     return Container(
-      padding: const EdgeInsets.only(top: 100, bottom: 20), // Padding agar tidak tertutup AppBar
+      padding: const EdgeInsets.symmetric(vertical: 10),
       alignment: Alignment.center,
       child: Column(
         children: [
-          _buildUserAvatar(),
-          const SizedBox(height: 10),
+          Stack(
+            children: [
+              Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _primaryPurple, width: 3),
+                  image: const DecorationImage(
+                    image: AssetImage('assets/images/ceww.png'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: _navigateToPersonalInfo,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      size: 20,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
           const Text(
             'Emma Watson',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
-          const SizedBox(height: 4),
-          _buildUserId(context),
+          const SizedBox(height: 5),
+          _buildUserId(),
         ],
       ),
     );
   }
 
-  Widget _buildUserId(BuildContext context) {
+  Widget _buildUserId() {
     const String userId = 'A1B2C3D40';
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(userId, style: TextStyle(fontSize: 16, color: Colors.grey)),
-        
-        IconButton(
-          icon: const Icon(Icons.copy, size: 16, color: Colors.grey),
-          onPressed: () {
-            // Aksi untuk menyalin
-            Clipboard.setData(const ClipboardData(text: userId));
-            
-            // Tampilkan notifikasi (SnackBar)
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('User ID copied to clipboard'),
-                duration: Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating, // Agar snackbar mengambang
-              ),
-            );
-          },
-          // Mengurangi padding default IconButton agar lebih rapat
-          constraints: const BoxConstraints(),
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          splashRadius: 16,
-        ),
-
-        IconButton(
-          icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
-          onPressed: () {
-            // Aksi edit
-          },
-          constraints: const BoxConstraints(),
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          splashRadius: 16,
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildUserAvatar() {
-    return Container(
-      width: 100,
-      height: 100,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        // Border putih dihilangkan sesuai desain baru
-        // border: Border.all(color: Colors.white, width: 3),
-        image: DecorationImage(
-          image: AssetImage('assets/avatar_pink.png'),
-          fit: BoxFit.cover,
-        ),
+    return GestureDetector(
+      onTap: () {
+        Clipboard.setData(const ClipboardData(text: userId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ID Copied!'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            userId,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+          const SizedBox(width: 5),
+          const Icon(Icons.copy, size: 16, color: _primaryPurple),
+        ],
       ),
     );
   }
 
-
-  // Widget ini HANYA me-render list horizontal
   Widget _buildEmergencyContactList() {
     return SizedBox(
-      height: 120,
+      height: 130,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 0), // Dihapus paddingnya
+        physics: const BouncingScrollPhysics(),
         itemCount: _contacts.length + 1,
         itemBuilder: (context, index) {
+          if (index == 0) {
+            return AddContactCard(onTap: _showAddContactDialog);
+          }
+          // index 0 dipakai buat Add Button di atas
           if (index < _contacts.length) {
-            return GestureDetector(
-              onTap: () => _showContactDetailDialog(_contacts[index]),
-              child: ContactCard(contact: _contacts[index]),
+            return Padding(
+              padding: const EdgeInsets.only(right: 15.0),
+              child: GestureDetector(
+                onTap: () => _showContactDetailDialog(_contacts[index]),
+                child: ContactCard(contact: _contacts[index]),
+              ),
             );
           } else {
             return AddContactCard(onTap: _showAddContactDialog);
@@ -240,22 +329,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Widget ini HANYA me-render box putih
   Widget _buildPersonalInformationBox() {
     return Container(
-      height: 150,
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1), // Shadow sedikit lebih jelas
-            spreadRadius: 1,
-            blurRadius: 5,
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildInfoField('First Name', 'Clara')),
+              const SizedBox(width: 10),
+              Expanded(child: _buildInfoField('Last Name', 'Adelia')),
+            ],
           ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: _buildInfoField('Phone Number', '628123456789010'),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: _buildInfoField('Post Code', '12345')),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(child: _buildInfoField('City', 'Gotham City')),
+              const SizedBox(width: 10),
+              Expanded(child: _buildInfoField('Country', 'Konoha Bahlilan')),
+            ],
+          ),
+          const SizedBox(height: 15),
+          _buildInfoField('Email', 'clara1234@gmail.com'),
+          _buildInfoField(
+            'Street Address',
+            'Jalan Mulu Jadian Kaga, Haram Akhi, Gotham City Karang ancur, Titanic, Konoha Bahlilan. 12345',
+          ),
+          const SizedBox(height: 15),
         ],
       ),
-      // Konten Informasi Pribadi
+    );
+  }
+
+  Widget _buildInfoField(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.3),
+        ),
+      ],
     );
   }
 }

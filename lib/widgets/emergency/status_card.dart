@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// Pastikan path model di project Anda sudah benar
 import 'package:safest/models/emergency_status.dart'; 
 
 class StatusCard extends StatelessWidget {
@@ -13,11 +14,12 @@ class StatusCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      // Mengurangi margin bawah di sini karena sudah diatur di Sized Box
+      // Menggunakan padding yang cukup di dalam card
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
+        // Menggunakan border solid ungu (bisa diubah ke dashed jika menggunakan CustomPainter)
         border: Border.all(
           color: primaryPurple,
           width: 1,
@@ -26,9 +28,11 @@ class StatusCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Ikon diambil dari model status
           Icon(status.icon, color: primaryPurple, size: 28),
           const SizedBox(width: 15),
           Expanded(
+            // Teks status diambil dari model status
             child: Text(
               status.text,
               style: const TextStyle(

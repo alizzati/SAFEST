@@ -39,7 +39,8 @@ GoRouter createRouter() {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.calling,
+    // initialLocation: AppRoutes.signIn,
+    initialLocation: AppRoutes.signIn,
 
     routes: [
       GoRoute(
@@ -85,6 +86,11 @@ GoRouter createRouter() {
         },
       ),
 
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfileScreen(),
+      ),
+
       ShellRoute(
         builder: (context, state, child) {
           return Scaffold(
@@ -109,10 +115,6 @@ GoRouter createRouter() {
           GoRoute(
             path: AppRoutes.education,
             builder: (context, state) => const EducationScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.profile,
-            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),

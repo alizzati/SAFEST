@@ -8,3 +8,4 @@ class UserService {
     await api.put('/users/${user.id}', user.toJson());
   }
 }
+

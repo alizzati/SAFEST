@@ -1,28 +1,8 @@
 import 'package:flutter/material.dart';
-import 'add_contact_form_dialog.dart';
 import 'package:safest/services/contact_service.dart';
 
 class AddContactMethodDialog extends StatelessWidget {
   const AddContactMethodDialog({super.key});
-
-  // Fungsi untuk menampilkan Pop Up 2 atau 3
-  void _showFormDialog(BuildContext context, AddContactMode mode) {
-    // Tutup Pop Up 1 terlebih dahulu
-    Navigator.pop(context); 
-    
-    // Tampilkan Pop Up 2 atau 3
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AddContactFormDialog(mode: mode);
-      },
-    ).then((added) {
-      // Setelah Pop Up 2/3 selesai, kembalikan status ke ProfileScreen
-      if (added == true) {
-        Navigator.pop(context, true); 
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +28,7 @@ class AddContactMethodDialog extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
+          // menutup dialog dan mengembalikan Mode yang dipilih
           _buildModeButton(context, 'Add by Phone Number', AddContactMode.phone),
           const SizedBox(height: 10),
           _buildModeButton(context, 'Add by ID', AddContactMode.id),
@@ -58,7 +39,10 @@ class AddContactMethodDialog extends StatelessWidget {
 
   Widget _buildModeButton(BuildContext context, String text, AddContactMode mode) {
     return ElevatedButton(
-      onPressed: () => _showFormDialog(context, mode),
+      onPressed: () {
+        // Kembalikan Mode yang dipilih ke ProfileScreen
+        Navigator.pop(context, mode);
+      },
       style: ElevatedButton.styleFrom( 
         backgroundColor: Colors.white,
         side: const BorderSide(color: Color(0xFF6A1B9A), width: 1.5),

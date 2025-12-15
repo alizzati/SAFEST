@@ -1,27 +1,22 @@
-import 'dart:convert';
-import 'package:flutter/material.dart';
+// import 'dart:convert';
+// import 'package:flutter/material.dart';
 
-// Enum untuk mode pengisian form
 enum AddContactMode { phone, id }
 
 class ContactService {
-  // Simulasi endpoint URL (Ganti dengan URL API Anda) 
   static const String _baseUrl = 'https://api.yourdomain.com/v1/contacts';
 
-  // Daftar kontak saat ini (Simulasi data di memory)
-  final List<Map<String, dynamic>> _contacts = [
-    {'name': 'Cleopatra', 'relationship': 'Sister', 'avatarUrl': 'assets/avatar_pink.png'},
-    {'name': 'Sangkuriang', 'relationship': 'Father', 'avatarUrl': 'assets/avatar_pink.png'},
+  // Data Dummy static agar persisten selama sesi aplikasi
+  static final List<Map<String, dynamic>> _contacts = [
+    {'name': 'Cleopatra', 'relationship': 'Sister', 'avatarUrl': 'assets/avatar_pink.png', 'phone_number': '+62812345678', 'user_id': 'CLEO1'},
+    {'name': 'Sangkuriang', 'relationship': 'Father', 'avatarUrl': 'assets/avatar_pink.png', 'phone_number': '+62898765432', 'user_id': 'SANG1'},
   ];
 
-  // Metode untuk mengambil kontak
   Future<List<Map<String, dynamic>>> fetchContacts() async {
-    // Simulasi penundaan jaringan
     await Future.delayed(const Duration(milliseconds: 500));
     return List.from(_contacts);
   }
 
-  // Metode untuk menambahkan kontak (Simulasi POST API)
   Future<bool> addContact({
     required AddContactMode mode,
     String? name,
@@ -29,43 +24,28 @@ class ContactService {
     String? id,
     required String relationship,
   }) async {
-    debugPrint('Simulating API call to add contact via ${mode.name}');
-
-    // Simulasi penundaan jaringan
-    await Future.delayed(const Duration(seconds: 1));
-
-    try {
-      if (mode == AddContactMode.phone && name != null && phone != null) {
-        // Data yang akan dikirim ke API /add/phone
-        final requestBody = jsonEncode({
-          'name': name,
-          'phone_number': phone,
-          'relationship': relationship,
-        });
-        debugPrint('Request Body (Phone): $requestBody');
-
-        // Simulasi sukses dan tambahkan ke data lokal
-        _contacts.add({'name': name, 'relationship': relationship, 'avatarUrl': 'assets/avatar_pink.png'});
-        return true;
-
-      } else if (mode == AddContactMode.id && id != null) {
-        // Data yang akan dikirim ke API /add/id
-        final requestBody = jsonEncode({
-          'user_id': id,
-          'relationship': relationship,
-        });
-        debugPrint('Request Body (ID): $requestBody');
-
-        // Simulasi sukses dan tambahkan ke data lokal
-        _contacts.add({'name': 'New User ID', 'relationship': relationship, 'avatarUrl': 'assets/avatar_pink.png'});
-        return true;
-
-      } else {
-        throw Exception('Data tidak lengkap untuk mode ${mode.name}');
-      }
-    } catch (e) {
-      debugPrint('Error adding contact: $e');
-      return false; // Simulasi kegagalan
+  await Future.delayed(const Duration(seconds: 1));
+  try {
+    if (mode == AddContactMode.phone && name != null && phone != null) {
+      _contacts.add({
+        'name': name,
+        'relationship': relationship,
+        'avatarUrl': 'assets/images/avatar_pink.png', // Default asset
+        'phone_number': phone, // Key ini harus sama dengan di _loadContacts
+        'user_id': null,
+      });
+      return true; // Berhasil
     }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // FUNGSI BARU: Hapus Kontak
+  Future<bool> deleteContact(String name) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    _contacts.removeWhere((contact) => contact['name'] == name);
+    return true;
   }
 }

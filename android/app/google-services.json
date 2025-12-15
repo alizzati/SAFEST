@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "585566632468",
+    "project_id": "safest-89e5d",
+    "storage_bucket": "safest-89e5d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:585566632468:android:e44470905b564dc5790501",
+        "android_client_info": {
+          "package_name": "com.example.safest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "585566632468-imiem94dmvqflkhh05us6v82j6a12jbu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.safest",
+            "certificate_hash": "b0ca0d3e93d5f895783e97a945d1fd4d31501e32"
+          }
+        },
+        {
+          "client_id": "585566632468-rtk2c9c3qe9sqc6mflilo56phcltqo0f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.safest",
+            "certificate_hash": "afa20af906e1ddeaa55a30a366b23c41705e3ae6"
+          }
+        },
+        {
+          "client_id": "585566632468-31tc0mlu2s1hjof18ebpae37jq80hki3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAY188dR-PbioXtCiAzQJCMzx-RFBb8Xec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "585566632468-31tc0mlu2s1hjof18ebpae37jq80hki3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
