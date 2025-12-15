@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
@@ -93,6 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ).then((deleted) {
       // Refresh jika kontak dihapus
       if (deleted == true) {
+        _loadContacts();
         _loadContacts();
       }
     });
@@ -219,6 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       alignment: Alignment.center,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Stack(
             children: [
@@ -398,3 +401,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+

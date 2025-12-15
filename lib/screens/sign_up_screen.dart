@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:safest/config/routes.dart';
+import 'package:safest/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -16,9 +18,10 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _isPasswordVisible = false;
   bool _isTermsAccepted = false;
+  bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -29,35 +32,77 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  void _handleSignUp() {
-    if (!_formKey.currentState!.validate()) return;
-
+  void _handleSignUp() async {
+    if (!_formKey.currentState!.validate() || _isLoading) return;
     if (!_isTermsAccepted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Please accept Terms of Service and Privacy Policy',
-                  style: TextStyle(fontSize: 14),
-                ),
-              ),
-            ],
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Please accept Terms of Service and Privacy Policy'),
+            backgroundColor: Colors.red,
           ),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        );
+      }
       return;
     }
+    setState(() => _isLoading = true);
+    try {
+      await AuthService().signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please sign in.'),
+            backgroundColor: Color(0xFF512DA8),
+          ),
+        );
+        context.go(AppRoutes.signIn);
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = e.message ?? "Registration failed.";
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Unexpected error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
-    // Redirect ke Personal Info untuk user baru
-    context.go(AppRoutes.personalInfo);
+  void _handleGoogleSignIn() async {
+    if (_isGoogleLoading) return;
+    setState(() => _isGoogleLoading = true);
+    try {
+      await AuthService().signInWithGoogle();
+      if (mounted) context.go(AppRoutes.personalInfo);
+    } on FirebaseAuthException catch (e) {
+      final msg = e.message ?? "Authentication failed.";
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Google Sign-In Failed: $e"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
   }
 
   @override
@@ -93,7 +138,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Header
                           Text(
                             'Secure Your\nSafety Today',
                             style: TextStyle(
@@ -105,9 +149,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-
                           SizedBox(height: screenHeight * 0.02),
-
                           Text(
                             'Sign up now and stay connected with\nemergency contacts anytime, anywhere.',
                             style: TextStyle(
@@ -118,13 +160,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-
-                          SizedBox(
-                            height: orientation == Orientation.portrait
-                                ? screenHeight * 0.03
-                                : screenHeight * 0.03,
-                          ),
-
+                          SizedBox(height: screenHeight * 0.03),
                           CustomTextField(
                             controller: _emailController,
                             labelText: 'Email Address',
@@ -134,9 +170,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
                           ),
-
                           SizedBox(height: screenHeight * 0.02),
-
                           CustomTextField(
                             controller: _passwordController,
                             labelText: 'Password',
@@ -151,27 +185,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 size: 20,
                               ),
                               onPressed: () {
-                                setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
-                                });
+                                setState(() => _isPasswordVisible = !_isPasswordVisible);
                               },
                             ),
                             isLargeScreen: isLargeScreen,
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
                           ),
-
                           SizedBox(height: screenHeight * 0.02),
-
-                          // Terms & Conditions Checkbox
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               GestureDetector(
                                 onTap: () {
-                                  setState(() {
-                                    _isTermsAccepted = !_isTermsAccepted;
-                                  });
+                                  setState(() => _isTermsAccepted = !_isTermsAccepted);
                                 },
                                 child: Container(
                                   width: 20,
@@ -189,11 +216,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ),
                                   ),
                                   child: _isTermsAccepted
-                                      ? const Icon(
-                                    Icons.check,
-                                    size: 14,
-                                    color: Colors.white,
-                                  )
+                                      ? const Icon(Icons.check, size: 14, color: Colors.white)
                                       : null,
                                 ),
                               ),
@@ -243,18 +266,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             ],
                           ),
-
                           SizedBox(height: screenHeight * 0.02),
-
-                          // Sign Up Button
                           GradientButton(
-                            text: 'Sign Up',
-                            onPressed: _handleSignUp,
+                            text: _isLoading ? 'Signing Up...' : 'Sign Up',
+                            onPressed: _isLoading ? null : _handleSignUp,
                           ),
-
                           SizedBox(height: screenHeight * 0.03),
-
-                          // Divider
                           Row(
                             children: [
                               Expanded(
@@ -281,41 +298,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             ],
                           ),
-
                           SizedBox(height: screenHeight * 0.025),
-
-                          // Google Sign In
                           SizedBox(
                             width: double.infinity,
                             height: screenHeight * 0.065,
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: _isGoogleLoading ? null : _handleGoogleSignIn,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: const BorderSide(
-                                    color: Color(0xFFE0E0E0),
-                                    width: 2,
-                                  ),
+                                  side: const BorderSide(color: Color(0xFFE0E0E0), width: 2),
                                 ),
                                 elevation: 0,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: screenWidth * 0.04,
-                                ),
+                                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Image.asset(
-                                    'assets/images/google_icon.png',
-                                    height: 20,
-                                    width: 20,
-                                  ),
+                                  Image.asset('assets/images/google_icon.png', height: 20, width: 20),
                                   SizedBox(width: screenWidth * 0.03),
                                   Text(
-                                    'Continue with Google',
+                                    _isGoogleLoading ? 'Signing in...' : 'Continue with Google',
                                     style: TextStyle(
                                       fontFamily: 'OpenSans',
                                       fontSize: isLargeScreen ? 14 : screenWidth * 0.038,
@@ -327,14 +332,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             ),
                           ),
-
-                          SizedBox(
-                            height: orientation == Orientation.portrait
-                                ? screenHeight * 0.025
-                                : screenHeight * 0.02,
-                          ),
-
-                          // Sign In Link
+                          SizedBox(height: orientation == Orientation.portrait ? screenHeight * 0.025 : screenHeight * 0.02),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -347,12 +345,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () {
-                                  context.push('/signin');
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                ),
+                                onPressed: () => context.go(AppRoutes.signIn),
+                                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4)),
                                 child: Text(
                                   'Sign In',
                                   style: TextStyle(
@@ -365,7 +359,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             ],
                           ),
-
                           SizedBox(height: screenHeight * 0.02),
                         ],
                       ),

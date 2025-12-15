@@ -3,7 +3,7 @@ import 'package:safest/models/emergency_contact.dart';
 
 // Widget untuk Contact Card
 class ContactCard extends StatelessWidget {
-  final EmergencyContact contact; 
+  final EmergencyContact contact;
 
   const ContactCard({super.key, required this.contact});
 
@@ -38,6 +38,14 @@ class ContactCard extends StatelessWidget {
                     image: DecorationImage(
                       image: AssetImage('assets/images/ceww.png'),
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback jika gambar tidak ditemukan
+                        return Icon(
+                          Icons.person,
+                          size: 30,
+                          color: Colors.grey[600],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -53,10 +61,7 @@ class ContactCard extends StatelessWidget {
                 ),
                 Text(
                   contact.relationship,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
             ),
@@ -90,11 +95,7 @@ class AddContactCard extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade300, width: 1),
         ),
         child: const Center(
-          child: Icon(
-            Icons.add,
-            size: 40,
-            color: Color(0xFF6A1B9A),
-          ),
+          child: Icon(Icons.add, size: 40, color: Color(0xFF6A1B9A)),
         ),
       ),
     );

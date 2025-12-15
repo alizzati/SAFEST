@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_core/firebase_core.dart'; 
+import 'package:firebase_core/firebase_core.dart';
 import 'config/routes.dart';
 
 void main() async {
@@ -14,7 +14,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final GoRouter router = createRouter(); 
+    final GoRouter router =
+        createRouter();
 
     return MaterialApp.router(
       title: 'Safest',

@@ -1,47 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:safest/screens/fake_call/set_fake_call_screen.dart';
-import 'package:safest/screens/home_screen.dart';
-import 'package:safest/screens/profile_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:safest/screens/splash_screen.dart';
+import 'package:safest/screens/sign_in_screen.dart';
+import 'package:safest/screens/sign_up_screen.dart';
 import 'package:safest/screens/onboarding_screen.dart';
+import 'package:safest/screens/personal_info_screen.dart';
+import 'package:safest/screens/emergency_contact_screen.dart';
+import 'package:safest/screens/home_screen.dart';
+import 'package:safest/screens/fake_call/set_fake_call_screen.dart';
+import 'package:safest/screens/education_screen.dart';
+import 'package:safest/widgets/custom_bottom_nav_bar.dart';
 import 'package:safest/screens/emergency/emergency_call_screen.dart';
 import 'package:safest/screens/emergency/calling_screen.dart';
 import 'package:safest/screens/emergency/ongoing_call_screen.dart';
-import 'package:safest/screens/sign_in_screen.dart';
-import 'package:safest/screens/sign_up_screen.dart';
-import 'package:safest/screens/splash_screen.dart';
 import 'package:safest/screens/live_video_screen.dart';
-import 'package:safest/screens/education_screen.dart';
-import 'package:safest/widgets/custom_bottom_nav_bar.dart';
-import 'package:safest/screens/personal_info_screen.dart';
-import 'package:safest/screens/emergency_contact_screen.dart';
+import 'package:safest/screens/profile_screen.dart';
 
 class AppRoutes {
-  static const String splash = '/splash';
-  static const String signIn = '/signin';
-  static const String signUp = '/signup';
-  static const String profile = '/profile';
-  static const String onBoarding = '/on_boarding';
-  static const String emergency = '/emergency';
-  static const String calling = '/calling';
-  static const String home = '/home';
-  static const String setFake = '/set_fake';
-  static const String ongoingCall = '/ongoing_call';
-  static const String liveVideo = '/liveVideo';
-  static const String education = '/education';
-  static const String personalInfo = '/personal-info';
-  static const String emergencyContact = '/emergency-contact';
+  static const splash = '/splash';
+  static const signIn = '/signin';
+  static const signUp = '/signup';
+  static const profile = '/profile';
+  static const onBoarding = '/on_boarding';
+  static const personalInfo = '/personal-info';
+  static const emergencyContact = '/emergency-contact';
+  static const home = '/home';
+  static const setFake = '/set_fake';
+  static const education = '/education';
+  static const emergency = '/emergency';
+  static const calling = '/calling';
+  static const ongoingCall = '/ongoing_call';
+  static const liveVideo = '/live_video';
 }
 
 GoRouter createRouter() {
-  final GlobalKey<NavigatorState> rootNavigatorKey =
-      GlobalKey<NavigatorState>();
+  final rootNavigatorKey = GlobalKey<NavigatorState>();
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    // initialLocation: AppRoutes.signIn,
-    initialLocation: AppRoutes.signIn,
-
+    initialLocation: AppRoutes.splash,
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -68,35 +68,36 @@ GoRouter createRouter() {
         builder: (context, state) => const EmergencyContactScreen(),
       ),
       GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.emergency,
         builder: (context, state) => const EmergencyCallScreen(),
       ),
       GoRoute(
         path: AppRoutes.calling,
-        name: 'calling',
         builder: (context, state) => const CallingScreen(),
       ),
       GoRoute(
+        path: AppRoutes.liveVideo,
+        builder: (context, state) => const LiveVideoScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.ongoingCall,
-        name: 'ongoing_call',
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
           final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
           return OngoingCallScreen(isInitialSpeakerOn: isSpeakerOn);
         },
       ),
-
-      GoRoute(
-        path: AppRoutes.profile,
-        builder: (context, state) => const ProfileScreen(),
-      ),
-
+      // ShellRoute untuk bottom nav
       ShellRoute(
         builder: (context, state, child) {
           return Scaffold(
             extendBody: true,
             body: child,
-            bottomNavigationBar: CustomBottomNavBar(), // Tambahkan const
+            bottomNavigationBar: CustomBottomNavBar(),
           );
         },
         routes: [
@@ -109,16 +110,55 @@ GoRouter createRouter() {
             builder: (context, state) => const SetFakeCallScreen(),
           ),
           GoRoute(
-            path: AppRoutes.liveVideo,
-            builder: (context, state) => const LiveVideoScreen(),
-          ),
-          GoRoute(
             path: AppRoutes.education,
             builder: (context, state) => const EducationScreen(),
           ),
         ],
       ),
     ],
+
+    redirect: (BuildContext context, GoRouterState state) async {
+      final User? user = FirebaseAuth.instance.currentUser;
+      final String location = state.uri.path;
+
+      final isAuthRoute = location == AppRoutes.signIn || location == AppRoutes.signUp;
+      final isOnboardingRoute = location == AppRoutes.personalInfo || location == AppRoutes.emergencyContact;
+      final isSplash = location == AppRoutes.splash;
+
+      // 1. User belum login → arahkan ke SignIn kecuali sedang akses SignIn / SignUp / Splash
+      if (user == null) {
+        if (isAuthRoute || isSplash) return null;
+        return AppRoutes.signIn;
+      }
+
+      // 2. User sudah login → cek profile
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final data = doc.data();
+
+      final bool profileComplete = data?['profileComplete'] == true;
+      final bool hasEmergencyContact = data?['emergencyContacts'] != null;
+
+      // Profile belum lengkap → Personal Info
+      if (!profileComplete) {
+        if (isOnboardingRoute) return null;
+        return AppRoutes.personalInfo;
+      }
+
+      // Profile lengkap tapi emergency contact belum ada → Emergency Contact
+      if (profileComplete && !hasEmergencyContact) {
+        if (location == AppRoutes.emergencyContact) return null;
+        return AppRoutes.emergencyContact;
+      }
+
+      // Profile lengkap + emergency contact ada → arahkan ke Home jika coba akses route auth / onboarding / splash
+      if (profileComplete && hasEmergencyContact) {
+        if (isAuthRoute || isOnboardingRoute || isSplash) return AppRoutes.home;
+        return null;
+      }
+
+      return null;
+    },
+
     errorBuilder: (context, state) => Scaffold(
       body: Center(
         child: Column(
@@ -126,10 +166,7 @@ GoRouter createRouter() {
           children: [
             const Icon(Icons.error, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
-              '404 - Page Not Found',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Text('404 - Page Not Found', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 8),
             Text('Path: ${state.uri.path}'),
             const SizedBox(height: 16),

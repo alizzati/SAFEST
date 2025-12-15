@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:safest/config/routes.dart';
+import 'package:safest/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -15,11 +17,12 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
+
+  final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -28,19 +31,70 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  void _handleSignIn() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Signing in...'),
-          backgroundColor: Color(0xFF512DA8),
-          duration: Duration(seconds: 1),
-        ),
+  void _handleSignIn() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() { _isLoading = true; });
+
+    try {
+      await AuthService().signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
-      Future.delayed(const Duration(milliseconds: 800), () {
-        context.go(AppRoutes.home);
-      });
+      if (mounted) context.go(AppRoutes.home);
+
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? "Authentication failed."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("An unexpected error occurred."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+
+    try {
+      await AuthService().signInWithGoogle();
+
+      if (mounted) context.go(AppRoutes.home);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message ?? "Google Sign-In failed."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Unexpected error occurred."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -141,9 +195,32 @@ class _SignInScreenState extends State<SignInScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () {
-                              // TODO: Forgot password
+                            onPressed: () async {
+                              final email = _emailController.text.trim();
+
+                              try {
+                                await AuthService().sendPasswordReset(email);
+
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("A password reset link has been sent to your email."),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(e.toString()),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
                             },
+
                             style: TextButton.styleFrom(
                               padding: EdgeInsets.symmetric(
                                 horizontal: screenWidth * 0.02,
@@ -207,9 +284,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           width: double.infinity,
                           height: screenHeight * 0.065,
                           child: ElevatedButton(
-                            onPressed: () {
-                              // TODO: Google sign in
-                            },
+                            onPressed: _handleGoogleSignIn,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               shape: RoundedRectangleBorder(

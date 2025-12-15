@@ -3,7 +3,7 @@ import 'package:gradient_borders/box_borders/gradient_box_border.dart';
 
 class GradientButton extends StatefulWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final double? width;
   final double? height;
   final double? fontSize;
@@ -30,19 +30,21 @@ class _GradientButtonState extends State<GradientButton> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isLargeScreen = MediaQuery.of(context).size.width > 600;
 
+    final bool isDisabled = widget.onPressed == null;
+
     return GestureDetector(
-      onTapDown: (_) {
+      onTapDown: isDisabled ? null : (_) {
         setState(() {
           _isPressed = true;
         });
       },
-      onTapUp: (_) {
+      onTapUp: isDisabled ? null : (_) {
         setState(() {
           _isPressed = false;
         });
-        widget.onPressed();
+        widget.onPressed!();
       },
-      onTapCancel: () {
+      onTapCancel: isDisabled ? null : () {
         setState(() {
           _isPressed = false;
         });
@@ -53,6 +55,8 @@ class _GradientButtonState extends State<GradientButton> {
         height: widget.height ?? screenHeight * 0.065,
         decoration: BoxDecoration(
           gradient: _isPressed
+              ? const LinearGradient(colors: [Color(0xFFE0E0E0), Color(0xFFC0C0C0)]) // Warna abu-abu saat disabled
+              : _isPressed
               ? null
               : const LinearGradient(
             colors: [Color(0xFF673AB7), Color(0xFF512DA8)],
@@ -65,7 +69,7 @@ class _GradientButtonState extends State<GradientButton> {
               ? null
               : Border.all(color: Colors.transparent, width: 2),
           boxShadow: [
-            if (!_isPressed)
+            if (!_isPressed && !isDisabled)
               const BoxShadow(
                 color: Colors.black26,
                 offset: Offset(0, 3),
@@ -88,7 +92,7 @@ class _GradientButtonState extends State<GradientButton> {
           child: Center(
             child: Text(
               widget.text,
-              style: _isPressed
+              style: isDisabled
                   ? TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: widget.fontSize ?? (isLargeScreen ? 16 : 18),

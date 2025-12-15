@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:safest/config/routes.dart';
+import 'package:safest/services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/user_service.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -17,6 +20,8 @@ class PersonalInfoScreen extends StatefulWidget {
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  bool _isLoading = false;
+
   // Controllers
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -32,6 +37,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final List<String> _genderOptions = ['Male', 'Female'];
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.text = AuthService().currentUser?.email ?? '';
+  }
+
+  @override
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
@@ -44,35 +55,72 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     super.dispose();
   }
 
-  void _handleSave() {
+  void _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    print('First Name: ${_firstNameController.text}');
-    print('Last Name: ${_lastNameController.text}');
-    print('Gender: $_selectedGender');
-    print('Street: ${_streetController.text}');
-    print('Post Code: ${_postCodeController.text}');
-    print('City: ${_cityController.text}');
-    print('Country: ${_countryController.text}');
-    print('Phone: ${_phoneController.text}');
-    print('Email: ${_emailController.text}');
+    // Pastikan pengguna sudah login sebelum menyimpan
+    final user = AuthService().currentUser;
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: Pengguna belum terautentikasi!'), backgroundColor: Colors.red),
+        );
+        context.go(AppRoutes.signIn);
+      }
+      return;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.white),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text('Personal information saved successfully!'),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    final String fullName = '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
+
+    try {
+      await UserService().saveUserProfileData(
+        uid: user.uid,
+        displayName: fullName,
+        details: {
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'gender': _selectedGender,
+          'phone': _phoneController.text.trim(),
+          'address': {
+            'street': _streetController.text.trim(),
+            'city': _cityController.text.trim(),
+            'postCode': _postCodeController.text.trim(),
+            'country': _countryController.text.trim(),
+          },
+        },
+      );
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({'profileComplete': true});
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Personal information saved successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.go(AppRoutes.emergencyContact);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -310,6 +358,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             labelText: 'Email Address',
                             keyboardType: TextInputType.emailAddress,
                             validator: Validators.validateEmail,
+                            readOnly: true,
+                            fillColor: const Color(0xFFF5F5F5),
                             isLargeScreen: isLargeScreen,
                             screenWidth: screenWidth,
                             screenHeight: screenHeight,
@@ -318,13 +368,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           SizedBox(height: screenHeight * 0.015),
 
                           GradientButton(
-                            text: 'Save',
-                            onPressed: () {
+                            text: _isLoading ? 'Saving...' : 'Save', // <<< LOADING STATE
+                            onPressed: _isLoading ? null : () {
                               if (_formKey.currentState!.validate()) {
                                 _handleSave();
-                                Future.delayed(const Duration(milliseconds: 800), () {
-                                  context.go(AppRoutes.emergencyContact);
-                                });
                               }
                             },
                             width: double.infinity,
