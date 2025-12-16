@@ -22,14 +22,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AudioPlayer _audioPlayer = AudioPlayer();
-  
+
   // Notifikasi Plugin
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   String? _currentlyPlayingCardId;
-  bool _isSirenePlaying = false; 
+  bool _isSirenePlaying = false;
   Position? _currentPosition; // Variabel ini sekarang akan sinkron
-  
+
   final Color _purpleColor = const Color(0xFF512DAB);
   final Color _redColor = const Color(0xFFC62828);
   final Color _greenColor = const Color(0xFF4CAF50);
@@ -55,11 +56,12 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- 1. INISIALISASI NOTIFIKASI ---
   void _initializeNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher'); // Pastikan icon ada
+        AndroidInitializationSettings(
+          '@mipmap/ic_launcher',
+        ); // Pastikan icon ada
 
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
@@ -68,18 +70,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _showNotification() async {
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
-      'share_location_channel', // Channel ID
-      'Live Location Sharing',  // Channel Name
-      channelDescription: 'Notifications for live location sharing',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      icon: '@mipmap/ic_launcher',
-      color: Color(0xFF512DAB),
-    );
+          'share_location_channel', // Channel ID
+          'Live Location Sharing', // Channel Name
+          channelDescription: 'Notifications for live location sharing',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+          icon: '@mipmap/ic_launcher',
+          color: Color(0xFF512DAB),
+        );
 
-    const NotificationDetails notificationDetails =
-        NotificationDetails(android: androidNotificationDetails);
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+    );
 
     await flutterLocalNotificationsPlugin.show(
       0, // Notification ID
@@ -122,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       setState(() {
         // Update KEDUA variabel agar sinkron
-        _currentPosition = position; 
+        _currentPosition = position;
         _currentLocation = LatLng(position.latitude, position.longitude);
         _locationEnabled = true;
       });
@@ -143,24 +146,24 @@ class _HomeScreenState extends State<HomeScreen> {
     // Gunakan data yang tersedia
     final lat = _currentPosition?.latitude ?? _currentLocation!.latitude;
     final lon = _currentPosition?.longitude ?? _currentLocation!.longitude;
-    
+
     // Link Google Maps yang valid
     final mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lon';
-    
-    final textToShare = '🚨 EMERGENCY ALERT 🚨\n\nSaya sedang dalam situasi darurat. Berikut adalah lokasi terkini saya:\n$mapsUrl';
+
+    final textToShare =
+        '🚨 EMERGENCY ALERT 🚨\n\nSaya sedang dalam situasi darurat. Berikut adalah lokasi terkini saya:\n$mapsUrl';
 
     try {
       // Share UI
       await Share.share(textToShare);
-      
+
       // Tampilkan Notifikasi Berhasil
       _showNotification();
-      
     } catch (e) {
       print("Error sharing location: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal berbagi lokasi.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Gagal berbagi lokasi.')));
     }
   }
 
@@ -197,11 +200,10 @@ class _HomeScreenState extends State<HomeScreen> {
           _currentlyPlayingCardId = null;
         });
         print('🚨 Sirene activated!');
-        
+
         if (mounted) {
           _showTurnOffSireneDialog();
         }
-
       } else {
         await _audioPlayer.stop();
         setState(() {
@@ -228,7 +230,9 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
           contentPadding: const EdgeInsets.all(30),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -252,23 +256,41 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _redColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                  
+
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop(); // Tutup dialog konfirmasi
-                      _playSirene(shouldPlay: true); // Mulai sirene dan otomatis buka dialog Turn Off
+                      _playSirene(
+                        shouldPlay: true,
+                      ); // Mulai sirene dan otomatis buka dialog Turn Off
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _greenColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Activate Siren', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Activate Siren',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -284,14 +306,16 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
           contentPadding: const EdgeInsets.all(30),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset('assets/images/sirene.png', height: 80),
               const SizedBox(height: 10),
-              
+
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop(); // Tutup dialog Turn Off
@@ -299,10 +323,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _redColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text('Turn Off Siren', style: TextStyle(color: Colors.white, fontSize: 16)),
+                child: const Text(
+                  'Turn Off Siren',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ),
             ],
           ),
@@ -422,9 +454,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               margin: EdgeInsets.symmetric(
                                 horizontal: screenWidth * 0.04,
                               ),
-                              height: screenWidth * 0.1,
+                              height: screenWidth * 0.12,
                               decoration: BoxDecoration(
-                                color: Colors.grey[100],
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(
                                   screenWidth * 0.03,
                                 ),
