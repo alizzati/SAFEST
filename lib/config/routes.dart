@@ -12,6 +12,7 @@ import 'package:safest/screens/emergency_contact_screen.dart';
 import 'package:safest/screens/home_screen.dart';
 import 'package:safest/screens/fake_call/set_fake_call_screen.dart';
 import 'package:safest/screens/education_screen.dart';
+import 'package:safest/screens/watching_live_video_screen.dart';
 import 'package:safest/widgets/custom_bottom_nav_bar.dart';
 import 'package:safest/screens/emergency/emergency_call_screen.dart';
 import 'package:safest/screens/emergency/calling_screen.dart';
@@ -34,6 +35,7 @@ class AppRoutes {
   static const calling = '/calling';
   static const ongoingCall = '/ongoing_call';
   static const liveVideo = '/live_video';
+  static const watchLiveVideo = '/watch_live_video';
 }
 
 GoRouter createRouter() {
@@ -84,6 +86,15 @@ GoRouter createRouter() {
         builder: (context, state) => const LiveVideoScreen(),
       ),
       GoRoute(
+        path: AppRoutes.watchLiveVideo,
+        builder: (context, state) {
+          final liveData =
+              state.extra as Map<String, dynamic>?; // ini data user yang live
+          return WatchingLiveVideoScreen(liveData: liveData);
+        },
+      ),
+
+      GoRoute(
         path: AppRoutes.ongoingCall,
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
@@ -121,8 +132,11 @@ GoRouter createRouter() {
       final User? user = FirebaseAuth.instance.currentUser;
       final String location = state.uri.path;
 
-      final isAuthRoute = location == AppRoutes.signIn || location == AppRoutes.signUp;
-      final isOnboardingRoute = location == AppRoutes.personalInfo || location == AppRoutes.emergencyContact;
+      final isAuthRoute =
+          location == AppRoutes.signIn || location == AppRoutes.signUp;
+      final isOnboardingRoute =
+          location == AppRoutes.personalInfo ||
+          location == AppRoutes.emergencyContact;
       final isSplash = location == AppRoutes.splash;
 
       // 1. User belum login → arahkan ke SignIn kecuali sedang akses SignIn / SignUp / Splash
@@ -132,7 +146,10 @@ GoRouter createRouter() {
       }
 
       // 2. User sudah login → cek profile
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final data = doc.data();
 
       final bool profileComplete = data?['profileComplete'] == true;
@@ -166,7 +183,10 @@ GoRouter createRouter() {
           children: [
             const Icon(Icons.error, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text('404 - Page Not Found', style: Theme.of(context).textTheme.headlineMedium),
+            Text(
+              '404 - Page Not Found',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
             const SizedBox(height: 8),
             Text('Path: ${state.uri.path}'),
             const SizedBox(height: 16),

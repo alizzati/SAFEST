@@ -8,17 +8,20 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'dart:convert';
 import 'package:safest/config/routes.dart';
 
-class LiveVideoScreen extends StatefulWidget {
-  const LiveVideoScreen({Key? key}) : super(key: key);
+class WatchingLiveVideoScreen extends StatefulWidget {
+  final Map<String, dynamic>? liveData;
+
+  const WatchingLiveVideoScreen({super.key, this.liveData});
 
   @override
-  _LiveVideoScreenState createState() => _LiveVideoScreenState();
+  _WatchingLiveVideoScreenState createState() =>
+      _WatchingLiveVideoScreenState();
 }
 
-class _LiveVideoScreenState extends State<LiveVideoScreen> {
+class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
   final Color _purpleColor = const Color(0xFF512DAB);
   final Color _redColor = const Color(0xFFC62828);
 
@@ -76,6 +79,8 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
         });
       }
     });
+
+    debugPrint('📌 Received extra: ${widget.liveData}');
   }
 
   Future<void> _getCurrentLocation() async {
@@ -332,9 +337,11 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final liveUser = widget.liveData;
+    final displayName = liveUser?['displayName'] ?? 'Unknown';
+    final phone = liveUser?['details']?['phone'] ?? 'N/A';
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -439,7 +446,7 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
                           ),
                           SizedBox(width: screenWidth * 0.02),
                           Text(
-                            'Video Live Active',
+                            "Watching Live ${displayName}",
                             style: TextStyle(
                               fontSize: screenWidth * 0.04,
                               fontWeight: FontWeight.w600,
