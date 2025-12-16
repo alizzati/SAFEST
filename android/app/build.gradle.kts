@@ -11,7 +11,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.safest"
-        minSdk = flutter.minSdkVersion.toInt()
+        //minSdk = flutter.minSdkVersion.toInt()
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion.toInt()
         versionCode = flutter.versionCode.toInt()
         versionName = flutter.versionName
@@ -40,4 +41,7 @@ flutter {
 
 googleServices {
     disableVersionCheck = true
+}
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

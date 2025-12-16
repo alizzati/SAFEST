@@ -30,8 +30,8 @@ class ContactService {
       _contacts.add({
         'name': name,
         'relationship': relationship,
-        'avatarUrl': 'assets/images/avatar_pink.png', // Default asset
-        'phone_number': phone, // Key ini harus sama dengan di _loadContacts
+        'avatarUrl': 'assets/images/avatar_pink.png', 
+        'phone_number': phone, 
         'user_id': null,
       });
       return true; // Berhasil
