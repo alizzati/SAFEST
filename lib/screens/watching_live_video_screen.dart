@@ -42,99 +42,62 @@ class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
-    _loadEmergencyContacts();
-    // Update lokasi setiap 2 detik
-    _locationTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
-      if (!mounted) {
-        timer.cancel();
-        return;
+
+    final liveUser = widget.liveData;
+
+    if (liveUser != null && liveUser['position'] != null) {
+      final position = liveUser['position'];
+      LatLng? liveLatLng;
+      if (position is GeoPoint) {
+        liveLatLng = LatLng(position.latitude, position.longitude);
+      } else if (position is Map) {
+        liveLatLng = LatLng(
+          position['latitude'] ?? 0.0,
+          position['longitude'] ?? 0.0,
+        );
       }
-      await _getCurrentLocation();
-    });
 
-    // Update durasi video setiap detik
-    _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || !_isRecording) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        _duration++;
-      });
-    });
+      _currentLocation = liveLatLng;
 
-    // Update gambar setiap 2 detik
-    _timer = Timer.periodic(const Duration(seconds: 2), (_) async {
-      if (!mounted) return;
-
-      final newUrl =
-          'http://ummuhafidzah.sch.id/safest/uploads/esp32-cam.jpg?t=${DateTime.now().millisecondsSinceEpoch}';
-
-      await precacheImage(NetworkImage(newUrl), context);
-
-      if (mounted) {
-        setState(() {
-          _currentImageUrl = newUrl;
-        });
-      }
-    });
-
-    debugPrint('📌 Received extra: ${widget.liveData}');
-  }
-
-  Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() {
-        _currentAddress = 'Location service disabled';
-      });
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() {
-          _currentAddress = 'Location permission denied';
-        });
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        _currentAddress = 'Location permission denied forever';
-      });
-      return;
-    }
-
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+      // Ambil nama alamat dari posisi live user
+      _getAddressFromNominatim(
+        _currentLocation!.latitude,
+        _currentLocation!.longitude,
       );
+    }
 
-      setState(() {
-        _currentLocation = LatLng(position.latitude, position.longitude);
-      });
+    _loadEmergencyContacts();
+    _listenLiveUserLocation();
+  }
 
-      // Ambil nama lokasi dari Nominatim API
-      await _getAddressFromNominatim(position.latitude, position.longitude);
-    } catch (e) {
-      print('❌ Error getting position: $e');
-      setState(() {
-        _currentAddress = 'Error getting location';
-      });
+  void _listenLiveUserLocation() {
+    final liveUser = widget.liveData;
+    final userId = liveUser?['uid'] ?? liveUser?['id']; // pastikan ada uid
+
+    if (userId != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .snapshots()
+          .listen((snapshot) {
+            final data = snapshot.data();
+            if (data != null && data['position'] != null) {
+              final pos = data['position'];
+              setState(() {
+                if (pos is GeoPoint) {
+                  _currentLocation = LatLng(pos.latitude, pos.longitude);
+                } else if (pos is Map) {
+                  _currentLocation = LatLng(
+                    pos['latitude'] ?? 0.0,
+                    pos['longitude'] ?? 0.0,
+                  );
+                }
+              });
+            }
+          });
     }
   }
 
-  // Method untuk reverse geocoding menggunakan Nominatim API (OpenStreetMap)
-  // Method untuk reverse geocoding menggunakan Nominatim API (OpenStreetMap)
-  // Method untuk reverse geocoding menggunakan Nominatim API (OpenStreetMap)
   Future<void> _getAddressFromNominatim(
     double latitude,
     double longitude,

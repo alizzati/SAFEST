@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -13,6 +12,8 @@ class UserService {
       await _firestore.collection('users').doc(uid).set({
         'displayName': displayName,
         'details': details,
+        'isLive': false, // default false
+        'position': GeoPoint(0.0, 0.0), // default posisi 0,0
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {

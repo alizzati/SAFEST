@@ -109,15 +109,28 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
     }
 
     try {
+      // Ambil posisi saat ini
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      // Buat GeoPoint untuk Firestore
+      GeoPoint geoPoint = GeoPoint(position.latitude, position.longitude);
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'position': geoPoint});
+      }
+
+      // Update state lokal jika perlu
       setState(() {
         _currentLocation = LatLng(position.latitude, position.longitude);
       });
 
-      // Ambil nama lokasi dari Nominatim API
+      // Ambil alamat dari Nominatim API jika perlu
       await _getAddressFromNominatim(position.latitude, position.longitude);
     } catch (e) {
       print('❌ Error getting position: $e');
