@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:go_router/go_router.dart';
+import 'package:safest/config/routes.dart';
+import 'package:safest/screens/fake_call/fake_calling_screen.dart';
 
 class SetFakeCallScreen extends StatefulWidget {
   const SetFakeCallScreen({Key? key}) : super(key: key);
@@ -209,8 +211,16 @@ class _SetFakeCallScreenState extends State<SetFakeCallScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: Tambahkan logika start fake call
+                  context.push(
+                    AppRoutes.fakeCalling,
+                    extra: {
+                      'name': _nameController.text,
+                      'phone': _phoneController.text,
+                      'callTime': _callTimes[_selectedTimeIndex!],
+                    },
+                  );
                 },
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5A00D0),
                   padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),

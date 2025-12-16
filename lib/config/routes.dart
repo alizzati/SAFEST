@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:safest/screens/fake_call/fake_calling_screen.dart';
+import 'package:safest/screens/fake_call/fake_ongoing_call_screen.dart';
 
 import 'package:safest/screens/splash_screen.dart';
 import 'package:safest/screens/sign_in_screen.dart';
@@ -34,6 +36,8 @@ class AppRoutes {
   static const emergency = '/emergency';
   static const calling = '/calling';
   static const ongoingCall = '/ongoing_call';
+  static const fakeCalling = '/fake_calling';
+  static const fakeOngoingCall = '/fake_ongoing_call';
   static const liveVideo = '/live_video';
   static const watchLiveVideo = '/watch_live_video';
 }
@@ -82,6 +86,10 @@ GoRouter createRouter() {
         builder: (context, state) => const CallingScreen(),
       ),
       GoRoute(
+        path: AppRoutes.fakeCalling,
+        builder: (context, state) => const FakeCallingScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.liveVideo,
         builder: (context, state) => const LiveVideoScreen(),
       ),
@@ -100,6 +108,18 @@ GoRouter createRouter() {
           final args = state.extra as Map<String, dynamic>?;
           final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
           return OngoingCallScreen(isInitialSpeakerOn: isSpeakerOn);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.fakeOngoingCall,
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>?;
+          final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
+          return FakeOngoingCallScreen(
+            name: args?['name'] ?? 'Unknown',
+            phone: args?['phone'] ?? '',
+            isInitialSpeakerOn: isSpeakerOn,
+          );
         },
       ),
       // ShellRoute untuk bottom nav
