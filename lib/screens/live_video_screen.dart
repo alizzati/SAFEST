@@ -28,7 +28,11 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
   bool _isRecording = true;
   bool _isMicOn = true;
   bool _isCameraOn = true;
-
+  late Timer _imageTimer;
+  String _currentImageUrl =
+      'http://ummuhafidzah.sch.id/safest/uploads/esp32-cam.jpg';
+  String _imageUrl = 'http://ummuhafidzah.sch.id/safest/uploads/esp32-cam.jpg';
+  late Timer _timer;
   @override
   void initState() {
     super.initState();
@@ -52,6 +56,19 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
       setState(() {
         _duration++;
       });
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      final newUrl =
+          'http://ummuhafidzah.sch.id/safest/uploads/esp32-cam.jpg?t=${DateTime.now().millisecondsSinceEpoch}';
+
+      await precacheImage(NetworkImage(newUrl), context);
+
+      if (mounted) {
+        setState(() {
+          _currentImageUrl = newUrl;
+        });
+      }
     });
   }
 
@@ -277,6 +294,7 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
   void dispose() {
     _locationTimer?.cancel();
     _durationTimer?.cancel();
+    _timer.cancel();
     super.dispose();
   }
 
@@ -431,24 +449,46 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
                 child: Stack(
                   children: [
                     // Placeholder untuk video
-                    Image.asset(
-                      'assets/images/video_dummy.jpg',
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[800],
-                          child: Center(
-                            child: Icon(
-                              Icons.videocam,
-                              size: screenWidth * 0.2,
-                              color: Colors.white54,
+                    // Ganti bagian ini:
+                    _isCameraOn
+                        ? Image.network(
+                            _currentImageUrl,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            gaplessPlayback: true, // penting agar tidak blink
+                            filterQuality: FilterQuality.low,
+                            errorBuilder: (_, __, ___) {
+                              return Container(
+                                color: Colors.black,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.videocam_off,
+                                    color: Colors.white54,
+                                    size: 80,
+                                  ),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey[800],
+                            child: Center(
+                              child: Icon(
+                                Icons.videocam_off,
+                                size: 80,
+                                color: Colors.white54,
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    ),
 
                     // Control buttons overlay
                     Positioned(
