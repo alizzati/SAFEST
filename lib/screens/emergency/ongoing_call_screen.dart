@@ -7,8 +7,13 @@ import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart';
 class OngoingCallScreen extends StatefulWidget {
   // Menerima isInitialSpeakerOn dari rute (Perbaikan 2)
   final bool isInitialSpeakerOn;
-  
-  const OngoingCallScreen({required this.isInitialSpeakerOn, super.key});
+  final String contactName;
+
+  const OngoingCallScreen({
+    required this.isInitialSpeakerOn,
+    required this.contactName,
+    super.key,
+  });
 
   @override
   State<OngoingCallScreen> createState() => _OngoingCallScreenState();
@@ -17,28 +22,28 @@ class OngoingCallScreen extends StatefulWidget {
 class _OngoingCallScreenState extends State<OngoingCallScreen> {
   Timer? _callTimer;
   Timer? _recordTimer;
-  
-  int _secondsElapsed = 0; 
-  int _recordSeconds = 0; 
-  
+
+  int _secondsElapsed = 0;
+  int _recordSeconds = 0;
+
   late bool _isSpeakerOn; // Diinisialisasi dari argumen (Perbaikan 2)
   bool _isRecording = false;
-  final String contactName = 'Mom';
-  
+
   // Konstanta untuk GAP/Space Timer
-  static const double _recordTimerContentHeight = 35.0; 
+  static const double _recordTimerContentHeight = 35.0;
   static const double _recordTimerVerticalPadding = 5.0;
-  static const double _recordTimerSpace = _recordTimerContentHeight + _recordTimerVerticalPadding * 2; 
+  static const double _recordTimerSpace =
+      _recordTimerContentHeight + _recordTimerVerticalPadding * 2;
   static const double _gapBeforeActions = 50.0; // Disesuaikan agar lebih stabil
 
   @override
   void initState() {
     super.initState();
     // Menerima state speaker dari CallingScreen (Perbaikan 2)
-    _isSpeakerOn = widget.isInitialSpeakerOn; 
-    
+    _isSpeakerOn = widget.isInitialSpeakerOn;
+
     // TODO: (SOUND) Atur Audio Output ke Speaker jika _isSpeakerOn true, atau ke Earpiece jika false.
-    
+
     _startCallTimer();
   }
 
@@ -49,7 +54,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
       }
     });
   }
-  
+
   // Fungsi Toggle Speaker (Perbaikan 3)
   void _toggleSpeaker() {
     setState(() {
@@ -88,19 +93,19 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
           // Callback saat tombol "Sure" di-tekan
           onConfirm: () {
             // 1. Tutup dialog konfirmasi
-            Navigator.of(dialogContext).pop(); 
-            
+            Navigator.of(dialogContext).pop();
+
             // 2. Navigasi GoRouter ke Emergency Screen (PERBAIKAN UTAMA)
-            context.go(AppRoutes.emergency); 
+            context.go(AppRoutes.emergency);
           },
           // Callback saat tombol "Cancel" di-tekan
           onCancel: () {
             // Tutup dialog
             Navigator.of(dialogContext).pop();
             // Lanjutkan timer
-            _startCallTimer(); 
+            _startCallTimer();
             if (_isRecording) {
-              _toggleRecording(); 
+              _toggleRecording();
             }
           },
         );
@@ -114,7 +119,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
     _recordTimer?.cancel();
     super.dispose();
   }
-  
+
   String _formatTime(int seconds) {
     final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
     final secs = (seconds % 60).toString().padLeft(2, '0');
@@ -161,7 +166,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
 
                 // Nama kontak
                 Text(
-                  contactName,
+                  widget.contactName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 30,
@@ -169,27 +174,27 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
                   ),
                 ),
                 const SizedBox(height: 5),
-                
+
                 // Waktu Panggilan (Utama)
                 Text(
                   _formatTime(_secondsElapsed),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 20,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 20),
                 ),
-                
+
                 // Record Timer (GAP/SPACE STABIL)
                 SizedBox(
-                  height: _recordTimerSpace, 
+                  height: _recordTimerSpace,
                   child: Center(
                     child: Visibility(
                       visible: _isRecording,
                       maintainState: true,
                       maintainAnimation: true,
-                      maintainSize: true, 
+                      maintainSize: true,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(0.8),
                           borderRadius: BorderRadius.circular(15),
@@ -197,19 +202,26 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.mic, color: Colors.white, size: 18),
+                            const Icon(
+                              Icons.mic,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                             const SizedBox(width: 5),
                             Text(
                               _formatTime(_recordSeconds),
-                              style: const TextStyle(color: Colors.white, fontSize: 16),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                ), 
-                
+                ),
+
                 const SizedBox(height: _gapBeforeActions),
 
                 // Call Actions
@@ -226,14 +238,14 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
                         onTap: _toggleSpeaker, // Panggil fungsi toggle speaker
                         isActive: _isSpeakerOn, // Gunakan state _isSpeakerOn
                       ),
-                      
+
                       // Location Button
                       _buildActionCircle(
-                        Icons.location_on, 
-                        'Location', 
+                        Icons.location_on,
+                        'Location',
                         lightGray,
                       ),
-                      
+
                       // Record Button
                       _buildActionCircle(
                         Icons.fiber_manual_record,
@@ -275,7 +287,13 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
   }
 
   // Widget untuk tombol aksi
-  Widget _buildActionCircle(IconData icon, String label, Color bgColor, {VoidCallback? onTap, bool isActive = false}) {
+  Widget _buildActionCircle(
+    IconData icon,
+    String label,
+    Color bgColor, {
+    VoidCallback? onTap,
+    bool isActive = false,
+  }) {
     const darkGray = Color(0xFF333333);
     const activeColor = Colors.white;
     final displayBgColor = isActive ? activeColor : bgColor;
@@ -296,10 +314,7 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
           ),
         ),
         const SizedBox(height: 5),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-        ),
+        Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
       ],
     );
   }

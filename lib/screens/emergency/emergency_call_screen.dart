@@ -1,12 +1,12 @@
 // import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart'; 
-// import 'package:safest/models/emergency_status.dart'; 
-import 'package:safest/widgets/emergency/status_card.dart'; 
-// import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart'; 
+import 'package:go_router/go_router.dart';
+// import 'package:safest/models/emergency_status.dart';
+import 'package:safest/widgets/emergency/status_card.dart';
+// import 'package:safest/widgets/emergency/end_call_confirmation_dialog.dart';
 import 'package:safest/widgets/custom_bottom_nav_bar.dart';
-import 'package:safest/services/emergency_status_service.dart'; 
+import 'package:safest/services/emergency_status_service.dart';
 
 class EmergencyCallScreen extends StatefulWidget {
   const EmergencyCallScreen({super.key});
@@ -17,7 +17,6 @@ class EmergencyCallScreen extends StatefulWidget {
 
 class _EmergencyCallScreenState extends State<EmergencyCallScreen>
     with SingleTickerProviderStateMixin {
-  
   // HAPUS: Timer? _statusTimer;
   // HAPUS: int _currentStatusIndex = 0;
   // HAPUS: final List<EmergencyStatus> _allStatuses = [...]
@@ -51,7 +50,7 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
     // MEMULAI LOOP STATUS menggunakan Service
     // Ini memastikan loop status selalu berjalan saat user berada di halaman ini
     if (!emergencyStatusService.isActive) {
-        emergencyStatusService.startEmergencyStatusLoop();
+      emergencyStatusService.startEmergencyStatusLoop();
     }
   }
 
@@ -67,30 +66,30 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
   void _onHoldEnd() {
     // Timer di Service tetap berjalan saat navigasi
     // Navigasi ke CallingScreen
-    context.pushReplacementNamed('calling');
+    context.pushReplacement('/calling');
   }
 
   @override
   Widget build(BuildContext context) {
     const primaryPurple = Color(0xFF6A1B9A);
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
-      
+
       // HILANGKAN APPBAR (ganti dengan toolbar height 0)
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 0, 
+        toolbarHeight: 0,
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarIconBrightness: Brightness.dark,
           statusBarColor: Colors.transparent,
         ),
       ),
-      
+
       // Tambahkan CustomBottomNavBar
-      bottomNavigationBar: CustomBottomNavBar(), 
-      
+      bottomNavigationBar: CustomBottomNavBar(),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: Column(
@@ -101,17 +100,17 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-                    onPressed: () => context.pop(), 
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+                  onPressed: () => context.pop(),
                 ),
                 IconButton(
-                    icon: const Icon(Icons.home_outlined, color: Colors.black),
-                    onPressed: () => context.go('/home'), 
+                  icon: const Icon(Icons.home_outlined, color: Colors.black),
+                  onPressed: () => context.go('/home'),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            
+
             const Text(
               'Emergency help\nneeded?',
               textAlign: TextAlign.center,
@@ -126,33 +125,35 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
             const Text(
               'Just hold the button to call',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.black87,
-              ),
+              style: TextStyle(fontSize: 18, color: Colors.black87),
             ),
             const SizedBox(height: 40),
 
             _buildCallButton(),
-            
-            const SizedBox(height: 40), 
+
+            const SizedBox(height: 40),
 
             // Daftar Status Dinamis (MENDENGARKAN SERVICE)
             SizedBox(
-              height: _statusCardVisualHeight, 
+              height: _statusCardVisualHeight,
               child: ListenableBuilder(
                 listenable: emergencyStatusService, // <--- LISTENER BARU
                 builder: (context, child) {
                   // Gunakan AnimatedSwitcher untuk efek fade
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 500),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
                     child: StatusCard(
                       // Gunakan key unik agar AnimatedSwitcher bekerja
-                      key: ValueKey(emergencyStatusService.currentStatus.text), 
-                      status: emergencyStatusService.currentStatus, // Ambil dari Service
+                      key: ValueKey(emergencyStatusService.currentStatus.text),
+                      status: emergencyStatusService
+                          .currentStatus, // Ambil dari Service
                     ),
                   );
                 },
@@ -175,9 +176,9 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
         child: GestureDetector(
           onTap: () {
             // Memanggil popover "Hold the button" (fungsi showHoldButtonDialog harus diimpor/didefinisikan)
-            // showHoldButtonDialog(context); 
+            // showHoldButtonDialog(context);
           },
-          onLongPress: _onHoldEnd, 
+          onLongPress: _onHoldEnd,
           child: AnimatedBuilder(
             animation: _pulsingAnimation,
             builder: (context, child) {
@@ -189,7 +190,9 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
                   color: const Color(0xFFE53935),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.red.withOpacity(_pulsingAnimation.value * 0.3),
+                      color: Colors.red.withOpacity(
+                        _pulsingAnimation.value * 0.3,
+                      ),
                       blurRadius: 25,
                       spreadRadius: 8 * _pulsingAnimation.value,
                     ),
@@ -206,7 +209,10 @@ class _EmergencyCallScreenState extends State<EmergencyCallScreen>
                     height: _buttonInnerSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.5), width: 3),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.5),
+                        width: 3,
+                      ),
                       color: const Color(0xFFC62828),
                     ),
                     child: Center(
