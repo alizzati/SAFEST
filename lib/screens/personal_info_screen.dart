@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:safest/config/routes.dart';
-import 'package:safest/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/user_service.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -11,7 +10,10 @@ import '../widgets/custom_dropdown.dart';
 import '../utils/validators.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
-  const PersonalInfoScreen({super.key});
+  // Menerima data awal jika diakses dari menu Edit Profile
+  final Map<String, dynamic>? initialData;
+
+  const PersonalInfoScreen({super.key, this.initialData});
 
   @override
   State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
@@ -19,7 +21,6 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _formKey = GlobalKey<FormState>();
-
   bool _isLoading = false;
 
   // Controllers
@@ -31,15 +32,37 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final TextEditingController _countryController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-
-  // Dropdown value
+  
   String? _selectedGender;
   final List<String> _genderOptions = ['Male', 'Female'];
 
   @override
   void initState() {
     super.initState();
-    _emailController.text = AuthService().currentUser?.email ?? '';
+    _populateInitialData();
+  }
+
+  // Fungsi untuk mengisi form jika ada data awal (Mode Edit)
+  void _populateInitialData() {
+    final user = FirebaseAuth.instance.currentUser;
+    final data = widget.initialData ?? {};
+
+    // Prioritas: Data dari parameter > Data dari Auth (untuk email) > Kosong
+    _firstNameController.text = data['firstName'] ?? '';
+    _lastNameController.text = data['lastName'] ?? '';
+    _phoneController.text = data['phoneNumber'] ?? '';
+    _streetController.text = data['streetAddress'] ?? '';
+    _cityController.text = data['city'] ?? '';
+    _countryController.text = data['country'] ?? '';
+    _postCodeController.text = data['postCode'] ?? '';
+    
+    // Email biasanya tidak diedit, ambil dari Auth jika data kosong
+    _emailController.text = data['email'] ?? user?.email ?? '';
+    
+    // Gender (opsional jika ada di data)
+    if (data.containsKey('gender')) {
+      _selectedGender = data['gender'];
+    }
   }
 
   @override
@@ -55,48 +78,37 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     super.dispose();
   }
 
-  void _handleSave() async {
+  Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Pastikan pengguna sudah login sebelum menyimpan
-    final user = AuthService().currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: Pengguna belum terautentikasi!'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Error: User not authenticated!'), backgroundColor: Colors.red),
         );
         context.go(AppRoutes.signIn);
       }
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    final String fullName = '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
+    setState(() => _isLoading = true);
 
     try {
-      await UserService().saveUserProfileData(
-        uid: user.uid,
-        displayName: fullName,
-        details: {
-          'firstName': _firstNameController.text.trim(),
-          'lastName': _lastNameController.text.trim(),
-          'gender': _selectedGender,
-          'phone': _phoneController.text.trim(),
-          'address': {
-            'street': _streetController.text.trim(),
-            'city': _cityController.text.trim(),
-            'postCode': _postCodeController.text.trim(),
-            'country': _countryController.text.trim(),
-          },
-        },
-      );
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({'profileComplete': true});
+      // Simpan dengan struktur FLAT (datar) agar mudah dibaca di ProfileScreen
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}', // Full Name backup
+        'gender': _selectedGender,
+        'phoneNumber': _phoneController.text.trim(),
+        'streetAddress': _streetController.text.trim(),
+        'city': _cityController.text.trim(),
+        'country': _countryController.text.trim(),
+        'postCode': _postCodeController.text.trim(),
+        'profileComplete': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)); // Merge agar tidak menimpa data kontak/lainnya
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,13 +117,21 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go(AppRoutes.emergencyContact);
+
+        // LOGIKA NAVIGASI:
+        // Jika initialData ada, berarti sedang Edit Mode (dari Profile) -> POP
+        // Jika initialData kosong, berarti sedang Onboarding -> GO NEXT
+        if (widget.initialData != null && widget.initialData!.isNotEmpty) {
+          context.pop(true); // Kembali ke Profile dengan sinyal sukses
+        } else {
+          context.go(AppRoutes.emergencyContact); // Lanjut ke step berikutnya
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Terjadi kesalahan: $e'),
+            content: Text('Error saving data: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -130,6 +150,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final orientation = MediaQuery.of(context).orientation;
 
     return AppScaffold(
+      // Tambahkan App Bar jika dalam Mode Edit agar user bisa kembali manual
+      appBar: widget.initialData != null 
+        ? AppBar(
+            title: const Text("Edit Profile", style: TextStyle(color: Colors.black)),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => context.pop(),
+            ),
+          ) 
+        : null, // Tidak ada AppBar saat Onboarding (sesuai desain awal)
+        
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isLargeScreen = constraints.maxWidth > 600;
@@ -155,34 +188,32 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: screenHeight * 0.02),
-
-                          // ==================== HEADER ====================
-                          Text(
-                            'Personal\nInformation',
-                            style: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 36 : screenWidth * 0.09,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF512DA8),
-                              height: 1.2,
+                          if (widget.initialData == null) ...[
+                             SizedBox(height: screenHeight * 0.02),
+                             // Header hanya muncul saat Onboarding
+                             Text(
+                              'Personal\nInformation',
+                              style: TextStyle(
+                                fontFamily: 'OpenSans',
+                                fontSize: isLargeScreen ? 36 : screenWidth * 0.09,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF512DA8),
+                                height: 1.2,
+                              ),
                             ),
-                          ),
-
-                          SizedBox(height: screenHeight * 0.015),
-
-                          Text(
-                            'Please provide your personal details below to help us create your profile. All fields are required.',
-                            style: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: isLargeScreen ? 14 : screenWidth * 0.032,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF7E7E7E),
-                              height: 1.6,
+                            SizedBox(height: screenHeight * 0.015),
+                            Text(
+                              'Please provide your personal details below to help us create your profile. All fields are required.',
+                              style: TextStyle(
+                                fontFamily: 'OpenSans',
+                                fontSize: isLargeScreen ? 14 : screenWidth * 0.032,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF7E7E7E),
+                                height: 1.6,
+                              ),
                             ),
-                          ),
-
-                          SizedBox(height: screenHeight * 0.015),
+                            SizedBox(height: screenHeight * 0.015),
+                          ],
 
                           Text(
                             'Your Personal Details',
@@ -365,20 +396,15 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             screenHeight: screenHeight,
                           ),
 
-                          SizedBox(height: screenHeight * 0.015),
+                          SizedBox(height: screenHeight * 0.03),
 
                           GradientButton(
-                            text: _isLoading ? 'Saving...' : 'Save', // <<< LOADING STATE
-                            onPressed: _isLoading ? null : () {
-                              if (_formKey.currentState!.validate()) {
-                                _handleSave();
-                              }
-                            },
+                            text: _isLoading ? 'Saving...' : 'Save',
+                            onPressed: _isLoading ? null : _handleSave,
                             width: double.infinity,
                             height: screenHeight * 0.065,
                             fontSize: isLargeScreen ? 16 : 18,
                           ),
-
 
                           SizedBox(height: screenHeight * 0.03),
                         ],

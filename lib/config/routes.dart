@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:safest/screens/fake_call/fake_calling_screen.dart';
-import 'package:safest/screens/fake_call/fake_ongoing_call_screen.dart';
 
 import 'package:safest/screens/splash_screen.dart';
 import 'package:safest/screens/sign_in_screen.dart';
@@ -14,7 +12,6 @@ import 'package:safest/screens/emergency_contact_screen.dart';
 import 'package:safest/screens/home_screen.dart';
 import 'package:safest/screens/fake_call/set_fake_call_screen.dart';
 import 'package:safest/screens/education_screen.dart';
-import 'package:safest/screens/watching_live_video_screen.dart';
 import 'package:safest/widgets/custom_bottom_nav_bar.dart';
 import 'package:safest/screens/emergency/emergency_call_screen.dart';
 import 'package:safest/screens/emergency/calling_screen.dart';
@@ -36,17 +33,16 @@ class AppRoutes {
   static const emergency = '/emergency';
   static const calling = '/calling';
   static const ongoingCall = '/ongoing_call';
-  static const fakeCalling = '/fake_calling';
-  static const fakeOngoingCall = '/fake_ongoing_call';
   static const liveVideo = '/live_video';
-  static const watchLiveVideo = '/watch_live_video';
+  static const fakeCalling = '/fake_calling'; 
+  static const fakeOngoingCall = '/fake_ongoing_call';
 }
 
-GoRouter createRouter() {
-  final rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
+GoRouter createRouter() {
   return GoRouter(
-    navigatorKey: rootNavigatorKey,
+    navigatorKey: rootNavigatorKey, // Gunakan variabel global di atas
     initialLocation: AppRoutes.splash,
     routes: [
       GoRoute(
@@ -67,7 +63,10 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.personalInfo,
-        builder: (context, state) => const PersonalInfoScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return PersonalInfoScreen(initialData: extra);
+        },
       ),
       GoRoute(
         path: AppRoutes.emergencyContact,
@@ -86,43 +85,15 @@ GoRouter createRouter() {
         builder: (context, state) => const CallingScreen(),
       ),
       GoRoute(
-        path: AppRoutes.fakeCalling,
-        builder: (context, state) => const FakeCallingScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.liveVideo,
         builder: (context, state) => const LiveVideoScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.watchLiveVideo,
-        builder: (context, state) {
-          final liveData =
-              state.extra as Map<String, dynamic>?; // ini data user yang live
-          return WatchingLiveVideoScreen(liveData: liveData);
-        },
-      ),
-
       GoRoute(
         path: AppRoutes.ongoingCall,
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
           final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
-          return OngoingCallScreen(
-            isInitialSpeakerOn: isSpeakerOn,
-            contactName: args?['contactName'] ?? 'Emergency Contact',
-          );
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.fakeOngoingCall,
-        builder: (context, state) {
-          final args = state.extra as Map<String, dynamic>?;
-          final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
-          return FakeOngoingCallScreen(
-            name: args?['name'] ?? 'Unknown',
-            phone: args?['phone'] ?? '',
-            isInitialSpeakerOn: isSpeakerOn,
-          );
+          return OngoingCallScreen(isInitialSpeakerOn: isSpeakerOn, contactName: '',);
         },
       ),
       // ShellRoute untuk bottom nav
@@ -155,45 +126,36 @@ GoRouter createRouter() {
       final User? user = FirebaseAuth.instance.currentUser;
       final String location = state.uri.path;
 
-      final isAuthRoute =
-          location == AppRoutes.signIn || location == AppRoutes.signUp;
-      final isOnboardingRoute =
-          location == AppRoutes.personalInfo ||
-          location == AppRoutes.emergencyContact;
+      final isAuthRoute = location == AppRoutes.signIn || location == AppRoutes.signUp;
       final isSplash = location == AppRoutes.splash;
 
-      // 1. User belum login → arahkan ke SignIn kecuali sedang akses SignIn / SignUp / Splash
       if (user == null) {
         if (isAuthRoute || isSplash) return null;
         return AppRoutes.signIn;
       }
 
-      // 2. User sudah login → cek profile
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final data = doc.data();
 
       final bool profileComplete = data?['profileComplete'] == true;
       final bool hasEmergencyContact = data?['emergencyContacts'] != null;
 
-      // Profile belum lengkap → Personal Info
       if (!profileComplete) {
-        if (isOnboardingRoute) return null;
+        if (location == AppRoutes.personalInfo) return null;
         return AppRoutes.personalInfo;
       }
 
-      // Profile lengkap tapi emergency contact belum ada → Emergency Contact
       if (profileComplete && !hasEmergencyContact) {
         if (location == AppRoutes.emergencyContact) return null;
         return AppRoutes.emergencyContact;
       }
 
-      // Profile lengkap + emergency contact ada → arahkan ke Home jika coba akses route auth / onboarding / splash
       if (profileComplete && hasEmergencyContact) {
-        if (isAuthRoute || isOnboardingRoute || isSplash) return AppRoutes.home;
-        return null;
+        if (isAuthRoute || isSplash) {
+          return AppRoutes.home;
+        }
+
+        return null; 
       }
 
       return null;
@@ -206,16 +168,12 @@ GoRouter createRouter() {
           children: [
             const Icon(Icons.error, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
-              '404 - Page Not Found',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Text('404 - Page Not Found', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 8),
             Text('Path: ${state.uri.path}'),
-            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => context.go(AppRoutes.splash),
-              child: const Text('Go Splash'),
+              onPressed: () => context.go(AppRoutes.home),
+              child: const Text('Go Home'),
             ),
           ],
         ),

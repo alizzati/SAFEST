@@ -28,7 +28,6 @@ class AddContactMethodDialog extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // menutup dialog dan mengembalikan Mode yang dipilih
           _buildModeButton(context, 'Add by Phone Number', AddContactMode.phone),
           const SizedBox(height: 10),
           _buildModeButton(context, 'Add by ID', AddContactMode.id),
@@ -40,7 +39,6 @@ class AddContactMethodDialog extends StatelessWidget {
   Widget _buildModeButton(BuildContext context, String text, AddContactMode mode) {
     return ElevatedButton(
       onPressed: () {
-        // Kembalikan Mode yang dipilih ke ProfileScreen
         Navigator.pop(context, mode);
       },
       style: ElevatedButton.styleFrom( 

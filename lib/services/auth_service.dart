@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:safest/services/user_service.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -11,18 +12,25 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
 
-  // EMAIL SIGN UP
   Future<UserCredential> signUp({
     required String email,
     required String password,
-  }) {
-    return _auth.createUserWithEmailAndPassword(
+  }) async { 
+    UserCredential credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+
+    if (credential.user != null) {
+      await UserService().generateAndSaveUserShortId(
+        credential.user!.uid, 
+        email.trim()
+      );
+    }
+
+    return credential;
   }
 
-  // EMAIL LOGIN
   Future<UserCredential> signIn({
     required String email,
     required String password,
@@ -50,7 +58,6 @@ class AuthService {
   // GOOGLE SIGN-IN SIMPLE
   Future<UserCredential> signInWithGoogle() async {
     try {
-      // 1. Trigger Sign-In Popup
       final GoogleSignInAccount? googleUser = await GoogleSignIn(
         scopes: ['email'],
       ).signIn();
@@ -59,17 +66,14 @@ class AuthService {
         throw Exception("Sign-In was cancelled.");
       }
 
-      // 2. Ambil auth token
       final GoogleSignInAuthentication googleAuth =
       await googleUser.authentication;
 
-      // 3. Convert ke Firebase credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // 4. Login ke Firebase Auth
       return await FirebaseAuth.instance.signInWithCredential(credential);
 
     } on FirebaseAuthException catch (e) {

@@ -31,7 +31,8 @@ class CustomTextField extends StatelessWidget {
     required this.screenHeight,
     this.fillColor,
     this.contentPadding,
-    this.suffixIcon,
+    this.suffixIcon, 
+    //required Null Function(dynamic val) onChanged, 
   });
 
   @override

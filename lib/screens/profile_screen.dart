@@ -1,15 +1,19 @@
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:safest/config/routes.dart';
 import 'package:safest/widgets/add_contact/add_contact_method_dialog.dart';
 import 'package:safest/widgets/add_contact/add_contact_form_dialog.dart';
 import 'package:safest/widgets/profile/contact_detail_dialog.dart';
 import 'package:safest/models/emergency_contact.dart';
 import 'package:safest/services/contact_service.dart';
+import 'package:safest/services/user_service.dart';
 import 'package:safest/widgets/profile/contact_card.dart';
+import 'package:safest/widgets/profile_header.dart'; 
+import 'package:safest/widgets/profile/personal_info_box.dart'; 
 
 class ProfileScreen extends StatefulWidget {
   final String? targetUserId;
@@ -21,16 +25,24 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final ContactService _contactService = ContactService();
+  final UserService _userService = UserService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   List<EmergencyContact> _contacts = [];
-  bool _isLoading = true;
+  bool _isLoadingContacts = true;
+  bool _isLoadingUser = true;
+  bool _isUploadingImage = false;
 
-  // Data User
   String _userId = '';
-  String _userName = 'Loading...';
-  String _userEmail = '';
+  String _firstName = '';
+  String _lastName = '';
+  String _phone = '';
+  String _email = '';
+  String _city = '';
+  String _country = '';
+  String _address = '';
+  String _postCode = '';
   String? _avatarUrl;
 
   static const Color _primaryPurple = Color(0xFF512DA8);
@@ -42,46 +54,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadContacts();
   }
 
-  // --- 1. LOAD USER DATA ---
   Future<void> _loadUserData() async {
+    if (!mounted) return;
+    setState(() => _isLoadingUser = true);
+
     User? currentUser = _auth.currentUser;
     String uidToCheck = widget.targetUserId ?? currentUser?.uid ?? '';
 
     if (uidToCheck.isEmpty) {
-      setState(() {
-        _userId = 'No User';
-        _userName = 'Guest';
-      });
+      if (mounted) setState(() => _isLoadingUser = false);
       return;
     }
 
-    setState(() => _userId = uidToCheck);
-
     try {
-      DocumentSnapshot userDoc = await _db.collection('users').doc(uidToCheck).get();
-      
+      DocumentSnapshot userDoc =
+          await _db.collection('users').doc(uidToCheck).get();
+
       if (userDoc.exists && mounted) {
-        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;        
+        Map<String, dynamic> details = data['details'] ?? data;
+
         setState(() {
-          _userName = data['name'] ?? 'No Name';
-          _userEmail = data['email'] ?? currentUser?.email ?? '';
+          _firstName = details['firstName'] ?? '';
+          _lastName = details['lastName'] ?? '';
+          _phone = details['phoneNumber'] ?? '-';
+          _email = data['email'] ?? currentUser?.email ?? '';
+          _city = details['city'] ?? '-';
+          _country = details['country'] ?? '-';
+          _address = details['streetAddress'] ?? '-';
+          _postCode = details['postCode'] ?? '-';
           _avatarUrl = data['avatarUrl'];
+
+          String rawUid = uidToCheck;
+          _userId = data['customId'] ?? rawUid.substring(0, 6).toUpperCase();
+          
+          _isLoadingUser = false;
         });
-      } else if (mounted) {
-        setState(() {
-          _userName = currentUser?.displayName ?? 'User';
-          _userEmail = currentUser?.email ?? '';
-        });
+      } else {
+        if (mounted) setState(() => _isLoadingUser = false);
       }
     } catch (e) {
       debugPrint("Error fetching user data: $e");
+      if (mounted) setState(() => _isLoadingUser = false);
     }
   }
 
-  // --- 2. LOAD CONTACTS ---
   Future<void> _loadContacts() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
     try {
       final contactData = await _contactService.fetchContacts();
       if (mounted) {
@@ -95,15 +114,127 @@ class _ProfileScreenState extends State<ProfileScreen> {
               userId: data['user_id'],
             );
           }).toList();
-          _isLoading = false;
+          _isLoadingContacts = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoadingContacts = false);
+    }
+  }
+  Future<void> _navigateToPersonalInfo() async {
+    final initialData = {
+      'firstName': _firstName,
+      'lastName': _lastName,
+      'phoneNumber': _phone,
+      'email': _email,
+      'city': _city,
+      'country': _country,
+      'streetAddress': _address,
+      'postCode': _postCode,
+    };
+    
+    final result = await context.push(AppRoutes.personalInfo, extra: initialData);
+    
+    if (result == true && mounted) {
+      _loadUserData();
     }
   }
 
-  // --- LOGIC DIALOGS ---
+  Future<void> _handleChangeProfilePicture() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Change Profile Picture",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildImageOption(Icons.camera_alt, "Camera", () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  }),
+                  _buildImageOption(Icons.photo_library, "Gallery", () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  }),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageOption(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: Colors.grey[100],
+            child: Icon(icon, size: 30, color: _primaryPurple),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 60, 
+        maxWidth: 800,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() => _isUploadingImage = true);
+
+      User? currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        await _userService.uploadProfilePicture(
+          currentUser.uid, 
+          File(pickedFile.path)
+        );
+        
+        await _loadUserData(); // Refresh UI
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Profile picture updated!")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to update picture: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingImage = false);
+    }
+  }
+
+  // DIALOGS
   Future<void> _showAddContactDialog() async {
     final AddContactMode? selectedMode = await showDialog<AddContactMode>(
       context: context,
@@ -117,10 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         useRootNavigator: true,
         builder: (context) => AddContactFormDialog(mode: selectedMode),
       );
-
-      if (isSuccess == true) {
-        _loadContacts();
-      }
+      if (isSuccess == true) _loadContacts();
     }
   }
 
@@ -134,254 +262,181 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _navigateToPersonalInfo() {
-    context.push('/personal-info');
-  }
-
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    String displayName = "$_firstName $_lastName".trim();
+    if (displayName.isEmpty) displayName = "User";
+
     return Scaffold(
-      backgroundColor: Colors.white, // Header background color
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Profile',
-          style: TextStyle(color: _primaryPurple, fontWeight: FontWeight.bold, fontSize: 24),
+          style: TextStyle(
+              color: _primaryPurple, fontWeight: FontWeight.bold, fontSize: 24),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.keyboard_arrow_left, size: 30, color: Colors.black),
-          onPressed: () => context.pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home_outlined, size: 28, color: Colors.black),
-            onPressed: () => context.go('/home'),
-          ),
-          const SizedBox(width: 10),
-        ],
+        automaticallyImplyLeading: false, 
       ),
-      body: CustomScrollView(
-        slivers: [
-          // Bagian Header (Foto & Nama) - Tetap di atas
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: _buildUserProfileHeader(),
-            ),
-          ),
-          
-          // Bagian Body (Ungu) - Mengisi sisa layar
-          SliverFillRemaining(
-            hasScrollBody: false, // Penting agar konten di dalamnya tidak scroll sendiri
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: _primaryPurple,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40),
-                  topRight: Radius.circular(40),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(25, 30, 25, 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Emergency Contact',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    const SizedBox(height: 15),
-
-                    // LIST CONTACT
-                    _isLoading
-                        ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: Colors.white)))
-                        : _buildEmergencyContactList(),
-
-                    const SizedBox(height: 25),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Personal Information',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      body: _isLoadingUser
+          ? const Center(child: CircularProgressIndicator(color: _primaryPurple))
+          : Stack(
+              children: [
+                CustomScrollView(
+                  slivers: [
+                    // --- HEADER ---
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: ProfileHeader(
+                          name: displayName,
+                          userId: _userId,
+                          avatarUrl: _avatarUrl ?? '',
+                          onEdit: _handleChangeProfilePicture, 
                         ),
-                        IconButton(
-                          onPressed: _navigateToPersonalInfo,
-                          icon: const Icon(Icons.edit, color: Colors.white, size: 20),
-                        )
-                      ],
+                      ),
                     ),
-                    
-                    _buildPersonalInformationBox(),
+
+                    // --- BODY ---
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: _primaryPurple,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(40),
+                            topRight: Radius.circular(40),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(25, 30, 25, 40),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Emergency Contact',
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                              const SizedBox(height: 15),
+
+                              _isLoadingContacts
+                                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                                  : SizedBox(
+                                      height: 135,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        physics: const BouncingScrollPhysics(),
+                                        itemCount: _contacts.length + 1,
+                                        itemBuilder: (context, index) {
+                                          if (index == 0) {
+                                            return AddContactCard(onTap: _showAddContactDialog);
+                                          }
+                                          return Padding(
+                                            padding: const EdgeInsets.only(right: 15.0),
+                                            child: GestureDetector(
+                                              onTap: () => _showContactDetailDialog(_contacts[index - 1]),
+                                              child: ContactCard(contact: _contacts[index - 1]),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+
+                              const SizedBox(height: 25),
+
+                              // HEADER PERSONAL INFO
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Personal Information',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                  // TOMBOL EDIT (ICON PENCIL)
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: _navigateToPersonalInfo, // AKSI NAVIGASI
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: const Icon(Icons.edit,
+                                            color: Colors.white, size: 22),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+
+                              // PERSONAL INFO BOX
+                              PersonalInformationBox(
+                                firstName: _firstName,
+                                lastName: _lastName,
+                                phone: _phone,
+                                email: _email,
+                                city: _city,
+                                country: _country,
+                                address: _address,
+                                postCode: _postCode,
+                              ),
+
+                              SizedBox(height: screenHeight * 0.03),
+                              
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    await FirebaseAuth.instance.signOut();
+                                    if (context.mounted) {
+                                      context.go(AppRoutes.signIn);
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFC62828),
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: screenHeight * 0.02),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(screenWidth * 0.02)),
+                                  ),
+                                  child: Text(
+                                    'Logout',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: screenWidth * 0.045,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
+                
+                // LOADING OVERLAY
+                if (_isUploadingImage)
+                  Container(
+                    color: Colors.black.withOpacity(0.5),
+                    child: const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                  )
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserProfileHeader() {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: _primaryPurple, width: 3),
-                image: DecorationImage(
-                  image: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                      ? NetworkImage(_avatarUrl!) as ImageProvider
-                      : const AssetImage('assets/images/ceww.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: _navigateToPersonalInfo,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.edit, size: 20, color: Colors.black),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 15),
-        Text(
-          _userName,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
-        ),
-        const SizedBox(height: 5),
-        _buildUserIdWidget(),
-      ],
-    );
-  }
-
-  Widget _buildUserIdWidget() {
-    return GestureDetector(
-      onTap: () {
-        Clipboard.setData(ClipboardData(text: _userId));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User ID Copied!'), duration: Duration(seconds: 1)),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _userId.length > 8 ? '${_userId.substring(0, 8)}...' : _userId,
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.copy, size: 16, color: _primaryPurple),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmergencyContactList() {
-    return SizedBox(
-      height: 135, // Tinggi disesuaikan agar tidak terpotong
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: _contacts.length + 1,
-        itemBuilder: (context, index) {
-          if (index == 0) return AddContactCard(onTap: _showAddContactDialog);
-          return Padding(
-            padding: const EdgeInsets.only(right: 15.0),
-            child: GestureDetector(
-              onTap: () => _showContactDetailDialog(_contacts[index - 1]),
-              child: ContactCard(contact: _contacts[index - 1]),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPersonalInformationBox() {
-    // Pastikan data ini nanti diambil dari Firestore (User Service)
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start, // Align top
-            children: [
-              Expanded(child: _buildInfoField('First Name', 'Clara')),
-              const SizedBox(width: 10),
-              Expanded(child: _buildInfoField('Last Name', 'Adelia')),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _buildInfoField('Phone Number', '628123456789010')),
-              const SizedBox(width: 10),
-              Expanded(child: _buildInfoField('Post Code', '12345')),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _buildInfoField('City', 'Gotham City')),
-              const SizedBox(width: 10),
-              Expanded(child: _buildInfoField('Country', 'Konoha Bahlilan')),
-            ],
-          ),
-          const SizedBox(height: 15),
-          _buildInfoField('Email', _userEmail.isNotEmpty ? _userEmail : 'clara1234@gmail.com'),
-          const SizedBox(height: 15),
-          _buildInfoField('Street Address', 'Jalan Mulu Jadian Kaga, Haram Akhi, Gotham City Karang ancur, Titanic, Konoha Bahlilan. 12345'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start, // Fix Justify Buruk
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.3),
-        ),
-      ],
     );
   }
 }

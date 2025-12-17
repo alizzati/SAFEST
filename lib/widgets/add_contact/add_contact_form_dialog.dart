@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:safest/services/contact_service.dart';
-import 'package:safest/widgets/add_contact/success_message.dart';
+import 'package:safest/services/user_service.dart';
+import 'package:safest/widgets/custom_text_field.dart';
+import 'package:safest/widgets/custom_dropdown.dart';
+import 'package:safest/widgets/gradient_button.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddContactFormDialog extends StatefulWidget {
   final AddContactMode mode;
@@ -12,198 +16,294 @@ class AddContactFormDialog extends StatefulWidget {
 }
 
 class _AddContactFormDialogState extends State<AddContactFormDialog> {
+  final _formKey = GlobalKey<FormState>();
   final ContactService _contactService = ContactService();
-  bool _isAdding = false;
-
+  final UserService _userService = UserService();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _relationshipController = TextEditingController();
-  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _phoneOrIdController = TextEditingController();
+
+  bool _isLoading = false;
+  String? _selectedRelationship;
+
+  bool _isCheckingId = false;
+  bool _isIdValid = false;
+  String? _idErrorMessage;
+  String? _foundUserName;
+
+  final List<String> _relationshipOptions = [
+    'Parent', 'Sibling', 'Spouse', 'Friend', 'Other'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneOrIdController.addListener(() {
+      if (widget.mode == AddContactMode.id && _isIdValid) {
+        setState(() {
+          _isIdValid = false;
+          _foundUserName = null;
+          _idErrorMessage = null;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _phoneController.dispose();
-    _relationshipController.dispose();
-    _idController.dispose();
+    _phoneOrIdController.dispose();
     super.dispose();
   }
 
-  // Proses penambahan kontak
-  Future<void> _addContact() async {
-    if (_isAdding) return;
-    setState(() => _isAdding = true);
+  Future<void> _checkUserId() async {
+    final targetId = _phoneOrIdController.text.trim();
+    if (targetId.isEmpty) return;
+
+    setState(() {
+      _isCheckingId = true;
+      _idErrorMessage = null;
+      _isIdValid = false;
+      _foundUserName = null;
+    });
+
+    try {
+      final userData = await _userService.findUserByCustomId(targetId);
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (userData != null) {
+        if (currentUser != null && userData['uid'] == currentUser.uid) {
+           setState(() {
+            _isIdValid = false;
+            _idErrorMessage = "You cannot add yourself as a contact.";
+          });
+        } else {
+          setState(() {
+            _isIdValid = true;
+            String fullName = "${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}".trim();
+            if (fullName.isEmpty) fullName = userData['displayName'] ?? 'Unknown User';
+            _foundUserName = fullName;
+          });
+        }
+      } else {
+        setState(() {
+          _isIdValid = false;
+          _idErrorMessage = "User ID not found";
+        });
+      }
+    } catch (e) {
+      setState(() => _idErrorMessage = "Error checking ID");
+    } finally {
+      setState(() => _isCheckingId = false);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (widget.mode == AddContactMode.id && !_isIdValid) {
+      setState(() => _idErrorMessage = "Please enter a valid User ID");
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     bool success = false;
 
     if (widget.mode == AddContactMode.phone) {
+      // MODE PHONE
       success = await _contactService.addContact(
-        mode: AddContactMode.phone,
-        name: _nameController.text,
-        phone: _phoneController.text,
-        relationship: _relationshipController.text,
+        mode: widget.mode,
+        name: _nameController.text.trim(),
+        phone: _phoneOrIdController.text.trim(),
+        relationship: _selectedRelationship!,
+        id: null,
       );
     } else {
+      // MODE ID
       success = await _contactService.addContact(
-        mode: AddContactMode.id,
-        id: _idController.text,
-        relationship: _relationshipController.text,
+        mode: widget.mode,
+        name: _foundUserName ?? 'Unknown',
+        phone: null,
+        id: _phoneOrIdController.text.trim(),
+        relationship: _selectedRelationship!,
       );
     }
 
-    setState(() => _isAdding = false);
+    setState(() => _isLoading = false);
 
     if (success && mounted) {
-      // Tampilkan Pop Up Success (Stack di atas Form)
-      await showDialog(
-        context: context,
-        builder: (context) => const SuccessDialog(),
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Contact added successfully!")),
       );
-
-      // Tutup Form Dialog dan kirim nilai 'true' ke ProfileScreen
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
     } else if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to add contact!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to add contact.")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLargeScreen = screenWidth > 600;
+
+    return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      contentPadding: const EdgeInsets.all(20),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.mode == AddContactMode.phone
-                  ? 'Add Contact by Phone Number'
-                  : 'Add Contact by ID',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF6A1B9A),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            if (widget.mode == AddContactMode.phone) ...[
-              _buildTextField(
-                'Emergency Contact Name',
-                'Enter contact\'s full name',
-                _nameController,
-              ),
-              _buildTextField(
-                'Emergency Contact Phone Number',
-                'Enter phone number',
-                _phoneController,
-                keyboardType: TextInputType.phone,
-              ),
-            ] else ...[
-              _buildTextField(
-                'Emergency Contact ID',
-                'Enter contact\'s ID',
-                _idController,
-              ),
-            ],
-
-            _buildTextField(
-              'Relationship with Contact',
-              'Enter relationship',
-              _relationshipController,
-            ),
-
-            const SizedBox(height: 20),
-
-            _buildPurpleButton('Add Contact', _addContact, _isAdding),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    String label,
-    String hint,
-    TextEditingController controller, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 16, color: Color(0xFF6A1B9A)),
-          ),
-          const SizedBox(height: 5),
-          TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              hintText: hint,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: Color(0xFF6A1B9A),
-                  width: 2,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        width: isLargeScreen ? 500 : screenWidth * 0.9,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.mode == AddContactMode.phone
+                    ? 'Add Contact by Phone'
+                    : 'Add Contact by ID',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF512DA8),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+              const SizedBox(height: 20),
 
-  Widget _buildPurpleButton(
-    String text,
-    VoidCallback onPressed,
-    bool isLoading,
-  ) {
-    return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 50),
-        backgroundColor: const Color(0xFF6A1B9A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              if (widget.mode == AddContactMode.phone) ...[
+                CustomTextField(
+                  controller: _nameController,
+                  labelText: 'Contact Name',
+                  isLargeScreen: isLargeScreen,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  validator: (v) => v!.isEmpty ? 'Name is required' : null,
+                ),
+                const SizedBox(height: 15),
+                CustomTextField(
+                  controller: _phoneOrIdController,
+                  labelText: 'Phone Number',
+                  keyboardType: TextInputType.phone,
+                  isLargeScreen: isLargeScreen,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  validator: (v) => v!.isEmpty ? 'Phone number is required' : null,
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        controller: _phoneOrIdController,
+                        labelText: 'User ID',
+                        isLargeScreen: isLargeScreen,
+                        screenWidth: screenWidth,
+                        screenHeight: screenHeight,
+                        validator: (v) => v!.isEmpty ? 'ID is required' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: _isCheckingId ? null : _checkUserId,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF512DA8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: _isCheckingId
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.search, color: Colors.white),
+                    ),
+                  ],
+                ),
+                
+                if (_idErrorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                    child: Text(
+                      _idErrorMessage!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+
+                if (_isIdValid && _foundUserName != null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 15),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.green),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.green),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("User Found:", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              Text(
+                                _foundUserName!,
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+
+              const SizedBox(height: 15),
+
+              if (widget.mode == AddContactMode.phone || (widget.mode == AddContactMode.id && _isIdValid))
+                CustomDropdown(
+                  value: _selectedRelationship,
+                  labelText: 'Relationship',
+                  items: _relationshipOptions,
+                  onChanged: (val) => setState(() => _selectedRelationship = val),
+                  isLargeScreen: isLargeScreen,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  validator: (v) => v == null ? 'Please select relationship' : null,
+                ),
+
+              const SizedBox(height: 25),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: GradientButton(
+                      text: _isLoading ? 'Saving...' : 'Add',
+                      onPressed: (_isLoading || (widget.mode == AddContactMode.id && !_isIdValid)) 
+                          ? null 
+                          : _handleSave,
+                      height: 45,
+                      width: double.infinity,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-      child: isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3,
-              ),
-            )
-          : Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
     );
   }
 }
