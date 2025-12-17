@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart'; 
-import 'package:go_router/go_router.dart'; 
-import 'package:safest/config/routes.dart'; 
+import 'package:audioplayers/audioplayers.dart';
+import 'package:go_router/go_router.dart';
+import 'package:safest/config/routes.dart';
 import 'package:audioplayers_platform_interface/audioplayers_platform_interface.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CallingScreen extends StatefulWidget {
   const CallingScreen({super.key});
@@ -15,25 +17,25 @@ class CallingScreen extends StatefulWidget {
 class _CallingScreenState extends State<CallingScreen> {
   Timer? _navigationTimer;
   Timer? _statusTimer;
-  
-  late AudioPlayer _audioPlayer; 
+
+  late AudioPlayer _audioPlayer;
 
   int _seconds = 0;
   bool _isSpeakerOn = false; // State Speaker
-  final String contactName = 'Mom'; 
+  String contactName = "";
 
   final AudioContext _earpieceContext = const AudioContext(
     android: AudioContextAndroid(
-        usageType: AndroidUsageType.voiceCommunication,
-        contentType: AndroidContentType.speech,
+      usageType: AndroidUsageType.voiceCommunication,
+      contentType: AndroidContentType.speech,
     ),
   );
 
   // Konteks untuk Speaker (Loudspeaker): Fokus pada media/umum, memaksa output speaker
   final AudioContext _speakerContext = const AudioContext(
     android: AudioContextAndroid(
-        usageType: AndroidUsageType.media,
-        contentType: AndroidContentType.music,
+      usageType: AndroidUsageType.media,
+      contentType: AndroidContentType.music,
     ),
   );
 
@@ -43,16 +45,18 @@ class _CallingScreenState extends State<CallingScreen> {
 
     _audioPlayer = AudioPlayer();
     _startRinging();
-    
+    _fetchEmergencyContact();
     _navigationTimer = Timer(const Duration(seconds: 10), () {
       if (mounted) {
-        _audioPlayer.stop(); 
-        
+        _audioPlayer.stop();
+
         // Navigasi GoRouter dengan mengirimkan state speaker
-        context.pushReplacementNamed(
-          'ongoing_call', 
-          // Menggunakan 'extra' untuk mengirimkan state speaker
-          extra: {'isInitialSpeakerOn': _isSpeakerOn},
+        context.pushReplacement(
+          '/ongoing_call',
+          extra: {
+            'isInitialSpeakerOn': _isSpeakerOn,
+            'contactName': contactName, 
+          },
         );
       }
     });
@@ -66,17 +70,74 @@ class _CallingScreenState extends State<CallingScreen> {
       setState(() => _seconds++);
     });
   }
-  
+
+  Future<void> _fetchEmergencyContact() async {
+    try {
+      debugPrint('--- FETCH EMERGENCY CONTACT START ---');
+
+      final user = FirebaseAuth.instance.currentUser;
+      debugPrint('Auth user: ${user?.uid}');
+
+      if (user == null) return;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        debugPrint('❌ USER DOCUMENT TIDAK ADA');
+        return;
+      }
+
+      final data = userDoc.data();
+      debugPrint('User doc data: $data');
+
+      final emergencyContacts = data?['emergencyContacts'];
+      debugPrint('Emergency contacts raw: $emergencyContacts');
+
+      if (emergencyContacts == null || emergencyContacts is! Map) {
+        debugPrint('❌ emergencyContacts TIDAK ADA / BUKAN MAP');
+        return;
+      }
+
+      // Ambil contact pertama (contact_1)
+      final firstKey = emergencyContacts.keys.first;
+      final firstContact = emergencyContacts[firstKey];
+
+      debugPrint('First contact key: $firstKey');
+      debugPrint('First contact data: $firstContact');
+
+      final name = firstContact['name'];
+
+      if (name == null) {
+        debugPrint('❌ FIELD name TIDAK ADA');
+        return;
+      }
+
+      setState(() {
+        contactName = name.toString();
+      });
+
+      debugPrint('✅ CONTACT NAME SET: $contactName');
+      debugPrint('--- FETCH EMERGENCY CONTACT END ---');
+    } catch (e, stack) {
+      debugPrint('🔥 ERROR FETCHING CONTACT');
+      debugPrint(e.toString());
+      debugPrint(stack.toString());
+    }
+  }
+
   void _startRinging() async {
     // Atur konteks awal ke Earpiece (Handset)
     await _audioPlayer.setAudioContext(_earpieceContext);
-    
+
     // TODO: Ganti path audio
     await _audioPlayer.setSource(AssetSource('sounds/calling_audio.mp3'));
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
     await _audioPlayer.resume();
   }
-  
+
   // Fungsi Toggle Speaker (Perbaikan Inti)
   void _toggleSpeaker() async {
     setState(() {
@@ -84,22 +145,21 @@ class _CallingScreenState extends State<CallingScreen> {
     });
 
     if (_isSpeakerOn) {
-        // AKTIFKAN SPEAKER (Loudspeaker)
-        await _audioPlayer.setAudioContext(_speakerContext); 
-        print("Speaker: LOUDSPEAKER AKTIF"); 
+      // AKTIFKAN SPEAKER (Loudspeaker)
+      await _audioPlayer.setAudioContext(_speakerContext);
+      print("Speaker: LOUDSPEAKER AKTIF");
     } else {
-        // NON-AKTIFKAN SPEAKER (Earpiece/Handset)
-        await _audioPlayer.setAudioContext(_earpieceContext);
-        print("Speaker: EARPIECE AKTIF"); 
+      // NON-AKTIFKAN SPEAKER (Earpiece/Handset)
+      await _audioPlayer.setAudioContext(_earpieceContext);
+      print("Speaker: EARPIECE AKTIF");
     }
   }
-
 
   @override
   void dispose() {
     _navigationTimer?.cancel();
     _statusTimer?.cancel();
-    _audioPlayer.stop(); 
+    _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -146,7 +206,7 @@ class _CallingScreenState extends State<CallingScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Nama Kontak
                 Text(
                   contactName,
@@ -157,18 +217,15 @@ class _CallingScreenState extends State<CallingScreen> {
                   ),
                 ),
                 const SizedBox(height: 5),
-                
+
                 // Status Waktu
                 Text(
                   'Calling... ${_formatTime(_seconds)}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 20,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 20),
                 ),
-                
-                const SizedBox(height: 50), 
-                
+
+                const SizedBox(height: 50),
+
                 // Call Actions
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -177,31 +234,31 @@ class _CallingScreenState extends State<CallingScreen> {
                     children: [
                       // 1. Speaker Button
                       _buildActionCircle(
-                        Icons.volume_up, 
+                        Icons.volume_up,
                         'Speaker',
                         onTap: _toggleSpeaker, // Aktifkan Speaker
-                        isActive: _isSpeakerOn, 
+                        isActive: _isSpeakerOn,
                       ),
-                      
+
                       // 2. Location Button
                       _buildActionCircle(
-                        Icons.location_on, 
-                        'Location', 
-                        onTap: () {}, 
+                        Icons.location_on,
+                        'Location',
+                        onTap: () {},
                         isActive: false,
                       ),
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 50), 
-                
+
+                const SizedBox(height: 50),
+
                 // End Call Button
                 GestureDetector(
                   // Navigasi langsung ke EmergencyScreen
                   onTap: () {
                     _audioPlayer.stop();
-                    context.go(AppRoutes.emergency); 
+                    context.go(AppRoutes.emergency);
                   },
                   child: Container(
                     width: 80,
@@ -236,7 +293,7 @@ class _CallingScreenState extends State<CallingScreen> {
     const darkGray = Color(0xFF333333);
     const lightGray = Color(0xFF616161);
     const activeColor = Colors.white;
-    
+
     final bgColor = isActive ? activeColor : lightGray;
     final iconColor = isActive ? darkGray : Colors.white;
 

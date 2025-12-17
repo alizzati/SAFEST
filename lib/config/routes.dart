@@ -107,7 +107,10 @@ GoRouter createRouter() {
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
           final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
-          return OngoingCallScreen(isInitialSpeakerOn: isSpeakerOn);
+          return OngoingCallScreen(
+            isInitialSpeakerOn: isSpeakerOn,
+            contactName: args?['contactName'] ?? 'Emergency Contact',
+          );
         },
       ),
       GoRoute(
