@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:safest/config/routes.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   CustomBottomNavBar({super.key});
@@ -89,50 +91,186 @@ class CustomBottomNavBar extends StatelessWidget {
               SizedBox(height: screenWidth * 0.06),
 
               // Tombol
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              Column(
                 children: [
-                  // Tombol Cancel
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: redColor,
-                        padding: EdgeInsets.symmetric(
-                          vertical: screenWidth * 0.035,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            screenWidth * 0.02,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Tombol Cancel
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: redColor,
+                            padding: EdgeInsets.symmetric(
+                              vertical: screenWidth * 0.035,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                screenWidth * 0.02,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: screenWidth * 0.04,
-                          fontWeight: FontWeight.w600,
+
+                      SizedBox(width: screenWidth * 0.03),
+
+                      // Tombol Yes, Start
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.of(dialogContext).pop();
+
+                            // Update isLive menjadi true
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user != null) {
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(user.uid)
+                                  .update({'isLive': true});
+                            }
+
+                            context.go(AppRoutes.liveVideo);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: greenColor,
+                            padding: EdgeInsets.symmetric(
+                              vertical: screenWidth * 0.035,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                screenWidth * 0.02,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Yes, Start',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
 
-                  SizedBox(width: screenWidth * 0.03),
-
-                  // Tombol Yes, Start
-                  Expanded(
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  // Jarak vertikal
+                  // Tombol Watch Other full width
+                  SizedBox(
+                    width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.of(dialogContext).pop();
-                        context.go(AppRoutes.liveVideo);
+
+                        try {
+                          final currentUser = FirebaseAuth.instance.currentUser;
+                          if (currentUser == null) return;
+
+                          final doc = await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(currentUser.uid)
+                              .get();
+
+                          final data = doc.data();
+                          if (data == null) return;
+
+                          final emergencyContacts =
+                              data['emergencyContacts'] as List<dynamic>?;
+
+                          if (emergencyContacts == null ||
+                              emergencyContacts.isEmpty) {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text("Info"),
+                                content: const Text(
+                                  "Tidak ada emergency contact.",
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text("OK"),
+                                  ),
+                                ],
+                              ),
+                            );
+                            return;
+                          }
+
+                          Map<String, dynamic>? liveContactData;
+
+                          // Loop emergency contact (LIST)
+                          for (final contact in emergencyContacts) {
+                            final contactMap = contact as Map<String, dynamic>;
+                            final contactId =
+                                contactMap['user_id']; // 🔑 customId
+
+                            if (contactId != null) {
+                              final query = await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .where('customId', isEqualTo: contactId)
+                                  .limit(1)
+                                  .get();
+
+                              if (query.docs.isNotEmpty) {
+                                final userData = query.docs.first.data();
+
+                                if (userData['isLive'] == true) {
+                                  liveContactData = userData;
+                                  break; // stop kalau sudah ketemu yang live
+                                }
+                              }
+                            }
+                          }
+
+                          if (liveContactData != null) {
+                            // Arahkan ke watchingLiveVideoScreen dengan data
+                            context.go(
+                              AppRoutes.watchLiveVideo,
+                              extra: liveContactData,
+                            );
+                          } else {
+                            // Tidak ada yang live
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text("Info"),
+                                content: const Text(
+                                  "Tidak ada yang sedang live.",
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text("OK"),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint(
+                            "❌ Error checking live emergency contacts by phone: $e",
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: greenColor,
+                        backgroundColor: purpleColor,
                         padding: EdgeInsets.symmetric(
-                          vertical: screenWidth * 0.035,
+                          vertical: screenWidth * 0.04,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
@@ -141,10 +279,10 @@ class CustomBottomNavBar extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'Yes, Start',
+                        'Watch Other',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: screenWidth * 0.04,
+                          fontSize: screenWidth * 0.045,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

@@ -23,6 +23,7 @@ class _CallingScreenState extends State<CallingScreen> {
   int _seconds = 0;
   bool _isSpeakerOn = false; // State Speaker
   String contactName = "";
+  String contactNumber = "";
 
   final AudioContext _earpieceContext = const AudioContext(
     android: AudioContextAndroid(
@@ -55,7 +56,8 @@ class _CallingScreenState extends State<CallingScreen> {
           '/ongoing_call',
           extra: {
             'isInitialSpeakerOn': _isSpeakerOn,
-            'contactName': contactName, 
+            'contactName': contactName,
+            'contactNumber': contactNumber,
           },
         );
       }
@@ -76,8 +78,6 @@ class _CallingScreenState extends State<CallingScreen> {
       debugPrint('--- FETCH EMERGENCY CONTACT START ---');
 
       final user = FirebaseAuth.instance.currentUser;
-      debugPrint('Auth user: ${user?.uid}');
-
       if (user == null) return;
 
       final userDoc = await FirebaseFirestore.instance
@@ -91,25 +91,20 @@ class _CallingScreenState extends State<CallingScreen> {
       }
 
       final data = userDoc.data();
-      debugPrint('User doc data: $data');
+      final emergencyContacts = data?['emergencyContacts'] as List<dynamic>?;
 
-      final emergencyContacts = data?['emergencyContacts'];
       debugPrint('Emergency contacts raw: $emergencyContacts');
 
-      if (emergencyContacts == null || emergencyContacts is! Map) {
-        debugPrint('❌ emergencyContacts TIDAK ADA / BUKAN MAP');
+      if (emergencyContacts == null || emergencyContacts.isEmpty) {
+        debugPrint('❌ emergencyContacts TIDAK ADA / KOSONG');
         return;
       }
 
-      // Ambil contact pertama (contact_1)
-      final firstKey = emergencyContacts.keys.first;
-      final firstContact = emergencyContacts[firstKey];
-
-      debugPrint('First contact key: $firstKey');
-      debugPrint('First contact data: $firstContact');
+      // Ambil contact pertama
+      final firstContact = emergencyContacts[0] as Map<String, dynamic>;
 
       final name = firstContact['name'];
-
+      final contact = firstContact['phone_number'];
       if (name == null) {
         debugPrint('❌ FIELD name TIDAK ADA');
         return;
@@ -117,9 +112,11 @@ class _CallingScreenState extends State<CallingScreen> {
 
       setState(() {
         contactName = name.toString();
+        contactNumber = contact.toString();
       });
 
       debugPrint('✅ CONTACT NAME SET: $contactName');
+      debugPrint('✅ CONTACT NUMBER SET: $contactNumber');
       debugPrint('--- FETCH EMERGENCY CONTACT END ---');
     } catch (e, stack) {
       debugPrint('🔥 ERROR FETCHING CONTACT');
@@ -214,6 +211,15 @@ class _CallingScreenState extends State<CallingScreen> {
                     color: Colors.white,
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  contactNumber,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
                   ),
                 ),
                 const SizedBox(height: 5),

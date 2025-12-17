@@ -15,6 +15,7 @@ class CustomTextField extends StatelessWidget {
   final Color? fillColor;
   final EdgeInsetsGeometry? contentPadding;
   final Widget? suffixIcon;
+  final bool enabled;
 
   const CustomTextField({
     super.key,
@@ -31,14 +32,16 @@ class CustomTextField extends StatelessWidget {
     required this.screenHeight,
     this.fillColor,
     this.contentPadding,
-    this.suffixIcon, 
-    //required Null Function(dynamic val) onChanged, 
+    this.suffixIcon,
+    this.enabled = true,
+    //required Null Function(dynamic val) onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     final effectiveFillColor = fillColor ?? Colors.white;
-    final effectiveFontSize = fontSize ?? (isLargeScreen ? 14.0 : screenWidth * 0.038);
+    final effectiveFontSize =
+        fontSize ?? (isLargeScreen ? 14.0 : screenWidth * 0.038);
 
     return TextFormField(
       controller: controller,
@@ -47,6 +50,7 @@ class CustomTextField extends StatelessWidget {
       obscureText: obscureText,
       keyboardType: keyboardType,
       validator: validator,
+      enabled: enabled,
       decoration: InputDecoration(
         labelText: labelText ?? '',
         labelStyle: TextStyle(
@@ -65,36 +69,26 @@ class CustomTextField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE0E0E0),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF512DA8),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF512DA8), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.red.shade600,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: Colors.red.shade600, width: 2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.red.shade600,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: Colors.red.shade600, width: 2),
         ),
-        contentPadding: contentPadding ?? EdgeInsets.symmetric(
-          vertical: screenHeight * 0.02,
-          horizontal: screenWidth * 0.04,
-        ),
+        contentPadding:
+            contentPadding ??
+            EdgeInsets.symmetric(
+              vertical: screenHeight * 0.02,
+              horizontal: screenWidth * 0.04,
+            ),
       ),
       style: TextStyle(
         fontFamily: 'OpenSans',

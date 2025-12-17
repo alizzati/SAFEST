@@ -6,7 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  
+
   Future<void> updatePersonalInfo({
     required String uid,
     required String firstName,
@@ -37,28 +37,35 @@ class UserService {
     try {
       final query = await _firestore
           .collection('users')
-          .where('details.phoneNumber', isEqualTo: phoneNumber) // Asumsi struktur data profile
+          .where(
+            'details.phoneNumber',
+            isEqualTo: phoneNumber,
+          ) // Asumsi struktur data profile
           .limit(1)
           .get();
 
       if (query.docs.isEmpty) {
-         final queryRoot = await _firestore
-          .collection('users')
-          .where('phoneNumber', isEqualTo: phoneNumber)
-          .limit(1)
-          .get();
-          
-         if (queryRoot.docs.isNotEmpty) {
-           final data = queryRoot.docs.first.data();
-           data['customId'] = data['customId'] ?? queryRoot.docs.first.id.substring(0, 6).toUpperCase();
-           return data;
-         }
+        final queryRoot = await _firestore
+            .collection('users')
+            .where('phoneNumber', isEqualTo: phoneNumber)
+            .limit(1)
+            .get();
+
+        if (queryRoot.docs.isNotEmpty) {
+          final data = queryRoot.docs.first.data();
+          data['customId'] =
+              data['customId'] ??
+              queryRoot.docs.first.id.substring(0, 6).toUpperCase();
+          return data;
+        }
       } else {
-         final data = query.docs.first.data();
-         data['customId'] = data['customId'] ?? query.docs.first.id.substring(0, 6).toUpperCase();
-         return data;
+        final data = query.docs.first.data();
+        data['customId'] =
+            data['customId'] ??
+            query.docs.first.id.substring(0, 6).toUpperCase();
+        return data;
       }
-      
+
       return null;
     } catch (e) {
       return null;
@@ -67,7 +74,7 @@ class UserService {
 
   Future<String> uploadProfilePicture(String uid, File imageFile) async {
     try {
-      final ref = _storage.ref().child('profile_images/$uid.jpg');      
+      final ref = _storage.ref().child('profile_images/$uid.jpg');
       await ref.putFile(imageFile);
       final downloadUrl = await ref.getDownloadURL();
       await _firestore.collection('users').doc(uid).update({
@@ -84,8 +91,9 @@ class UserService {
   String _generateShortId() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     Random rnd = Random();
-    return String.fromCharCodes(Iterable.generate(
-        6, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))));
+    return String.fromCharCodes(
+      Iterable.generate(6, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))),
+    );
   }
 
   Future<void> generateAndSaveUserShortId(String uid, String email) async {
@@ -97,7 +105,7 @@ class UserService {
           .collection('users')
           .where('customId', isEqualTo: shortId)
           .get();
-      
+
       if (query.docs.isEmpty) {
         isUnique = true;
       } else {
@@ -108,7 +116,7 @@ class UserService {
 
     await _firestore.collection('users').doc(uid).set({
       'email': email,
-      'customId': shortId, 
+      'customId': shortId,
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -124,7 +132,7 @@ class UserService {
       if (query.docs.isNotEmpty) {
         final doc = query.docs.first;
         final data = doc.data();
-        data['uid'] = doc.id; 
+        data['uid'] = doc.id;
         return data;
       }
       return null;
@@ -152,6 +160,8 @@ class UserService {
       await _firestore.collection('users').doc(uid).set({
         'displayName': displayName,
         'details': details,
+        'isLive': false, // default false
+        'position': GeoPoint(0.0, 0.0),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -163,9 +173,9 @@ class UserService {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
-        return doc.data(); 
+        return doc.data();
       }
-      return null; 
+      return null;
     } catch (e) {
       throw Exception("Error finding user: $e");
     }

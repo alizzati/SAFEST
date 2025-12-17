@@ -8,10 +8,12 @@ class OngoingCallScreen extends StatefulWidget {
   // Menerima isInitialSpeakerOn dari rute (Perbaikan 2)
   final bool isInitialSpeakerOn;
   final String contactName;
+  final String contactNumber;
 
   const OngoingCallScreen({
     required this.isInitialSpeakerOn,
     required this.contactName,
+    required this.contactNumber,
     super.key,
   });
 
@@ -171,6 +173,16 @@ class _OngoingCallScreenState extends State<OngoingCallScreen> {
                     color: Colors.white,
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+
+                Text(
+                  widget.contactNumber,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
                   ),
                 ),
                 const SizedBox(height: 5),

@@ -533,10 +533,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             ButtonCircle(
                               size: screenWidth * 0.13,
                               color: Colors.white,
-                              icon: Icons.notifications,
+                              icon: Icons.history,
                               iconColor: _purpleColor,
                               onPressed: () {
-                                // Handle menu button press
+                                context.push(AppRoutes.liveVideoHistory);
                               },
                               shadowColor: Colors.black.withOpacity(0.1),
                             ),

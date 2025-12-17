@@ -30,8 +30,14 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
   String? _idErrorMessage;
   String? _foundUserName;
 
+  String? _foundUserPhone;
+
   final List<String> _relationshipOptions = [
-    'Parent', 'Sibling', 'Spouse', 'Friend', 'Other'
+    'Parent',
+    'Sibling',
+    'Spouse',
+    'Friend',
+    'Other',
   ];
 
   @override
@@ -64,6 +70,7 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
       _idErrorMessage = null;
       _isIdValid = false;
       _foundUserName = null;
+      _foundUserPhone = null;
     });
 
     try {
@@ -72,16 +79,20 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
 
       if (userData != null) {
         if (currentUser != null && userData['uid'] == currentUser.uid) {
-           setState(() {
+          setState(() {
             _isIdValid = false;
             _idErrorMessage = "You cannot add yourself as a contact.";
           });
         } else {
           setState(() {
             _isIdValid = true;
-            String fullName = "${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}".trim();
-            if (fullName.isEmpty) fullName = userData['displayName'] ?? 'Unknown User';
+            String fullName =
+                "${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}"
+                    .trim();
+            if (fullName.isEmpty)
+              fullName = userData['displayName'] ?? 'Unknown User';
             _foundUserName = fullName;
+            _foundUserPhone = userData['phoneNumber'];
           });
         }
       } else {
@@ -123,7 +134,7 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
       success = await _contactService.addContact(
         mode: widget.mode,
         name: _foundUserName ?? 'Unknown',
-        phone: null,
+        phone: _foundUserPhone ?? '-',
         id: _phoneOrIdController.text.trim(),
         relationship: _selectedRelationship!,
       );
@@ -137,9 +148,9 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
         const SnackBar(content: Text("Contact added successfully!")),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to add contact.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to add contact.")));
     }
   }
 
@@ -189,7 +200,8 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
                   isLargeScreen: isLargeScreen,
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
-                  validator: (v) => v!.isEmpty ? 'Phone number is required' : null,
+                  validator: (v) =>
+                      v!.isEmpty ? 'Phone number is required' : null,
                 ),
               ] else ...[
                 Row(
@@ -210,7 +222,8 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF512DA8),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: _isCheckingId
@@ -218,12 +231,15 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2))
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : const Icon(Icons.search, color: Colors.white),
                     ),
                   ],
                 ),
-                
+
                 if (_idErrorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0, left: 4.0),
@@ -250,10 +266,19 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("User Found:", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              const Text(
+                                "User Found:",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              ),
                               Text(
                                 _foundUserName!,
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ],
                           ),
@@ -265,16 +290,19 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
 
               const SizedBox(height: 15),
 
-              if (widget.mode == AddContactMode.phone || (widget.mode == AddContactMode.id && _isIdValid))
+              if (widget.mode == AddContactMode.phone ||
+                  (widget.mode == AddContactMode.id && _isIdValid))
                 CustomDropdown(
                   value: _selectedRelationship,
                   labelText: 'Relationship',
                   items: _relationshipOptions,
-                  onChanged: (val) => setState(() => _selectedRelationship = val),
+                  onChanged: (val) =>
+                      setState(() => _selectedRelationship = val),
                   isLargeScreen: isLargeScreen,
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
-                  validator: (v) => v == null ? 'Please select relationship' : null,
+                  validator: (v) =>
+                      v == null ? 'Please select relationship' : null,
                 ),
 
               const SizedBox(height: 25),
@@ -284,15 +312,20 @@ class _AddContactFormDialogState extends State<AddContactFormDialog> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: GradientButton(
                       text: _isLoading ? 'Saving...' : 'Add',
-                      onPressed: (_isLoading || (widget.mode == AddContactMode.id && !_isIdValid)) 
-                          ? null 
+                      onPressed:
+                          (_isLoading ||
+                              (widget.mode == AddContactMode.id && !_isIdValid))
+                          ? null
                           : _handleSave,
                       height: 45,
                       width: double.infinity,

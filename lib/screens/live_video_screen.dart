@@ -330,7 +330,7 @@ class _LiveVideoScreenState extends State<LiveVideoScreen> {
 
       final data = doc.data();
       if (data != null) {
-        final contacts = data['emergencyContacts'] as Map<String, dynamic>?;
+        final contacts = data['emergencyContacts'] as List<dynamic>?;
 
         debugPrint('Contacts raw: $contacts');
 

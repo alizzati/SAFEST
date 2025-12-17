@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:safest/screens/fake_call/fake_calling_screen.dart';
+import 'package:safest/screens/fake_call/fake_ongoing_call_screen.dart';
+import 'package:safest/screens/live_video_history_screen.dart';
 
 import 'package:safest/screens/splash_screen.dart';
 import 'package:safest/screens/sign_in_screen.dart';
@@ -12,6 +15,7 @@ import 'package:safest/screens/emergency_contact_screen.dart';
 import 'package:safest/screens/home_screen.dart';
 import 'package:safest/screens/fake_call/set_fake_call_screen.dart';
 import 'package:safest/screens/education_screen.dart';
+import 'package:safest/screens/watching_live_video_screen.dart';
 import 'package:safest/widgets/custom_bottom_nav_bar.dart';
 import 'package:safest/screens/emergency/emergency_call_screen.dart';
 import 'package:safest/screens/emergency/calling_screen.dart';
@@ -34,8 +38,10 @@ class AppRoutes {
   static const calling = '/calling';
   static const ongoingCall = '/ongoing_call';
   static const liveVideo = '/live_video';
-  static const fakeCalling = '/fake_calling'; 
+  static const fakeCalling = '/fake_calling';
   static const fakeOngoingCall = '/fake_ongoing_call';
+  static const watchLiveVideo = '/watch_live_video';
+  static const liveVideoHistory = '/live_video_history';
 }
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -58,8 +64,16 @@ GoRouter createRouter() {
         builder: (context, state) => const SignUpScreen(),
       ),
       GoRoute(
+        path: AppRoutes.liveVideoHistory,
+        builder: (context, state) => LiveVideoHistoryScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.onBoarding,
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.fakeCalling,
+        builder: (context, state) => const FakeCallingScreen(),
       ),
       GoRoute(
         path: AppRoutes.personalInfo,
@@ -89,11 +103,39 @@ GoRouter createRouter() {
         builder: (context, state) => const LiveVideoScreen(),
       ),
       GoRoute(
-        path: AppRoutes.ongoingCall,
+        path: AppRoutes.fakeOngoingCall,
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
           final bool isSpeakerOn = (args?['isSpeakerOn'] as bool?) ?? false;
-          return OngoingCallScreen(isInitialSpeakerOn: isSpeakerOn, contactName: '',);
+          return FakeOngoingCallScreen(
+            name: args?['name'] ?? 'Unknown',
+            phone: args?['phone'] ?? '',
+            isInitialSpeakerOn: isSpeakerOn,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.watchLiveVideo,
+        builder: (context, state) {
+          final liveData =
+              state.extra as Map<String, dynamic>?; // ini data user yang live
+          return WatchingLiveVideoScreen(liveData: liveData);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.ongoingCall,
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>?;
+          final bool isSpeakerOn =
+              (args?['isInitialSpeakerOn'] as bool?) ?? false;
+          final String contactName = (args?['contactName'] as String?) ?? '';
+          final String contactNumber =
+              (args?['contactNumber'] as String?) ?? '';
+          return OngoingCallScreen(
+            isInitialSpeakerOn: isSpeakerOn,
+            contactName: contactName,
+            contactNumber: contactNumber,
+          );
         },
       ),
       // ShellRoute untuk bottom nav
@@ -126,7 +168,8 @@ GoRouter createRouter() {
       final User? user = FirebaseAuth.instance.currentUser;
       final String location = state.uri.path;
 
-      final isAuthRoute = location == AppRoutes.signIn || location == AppRoutes.signUp;
+      final isAuthRoute =
+          location == AppRoutes.signIn || location == AppRoutes.signUp;
       final isSplash = location == AppRoutes.splash;
 
       if (user == null) {
@@ -134,7 +177,10 @@ GoRouter createRouter() {
         return AppRoutes.signIn;
       }
 
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final data = doc.data();
 
       final bool profileComplete = data?['profileComplete'] == true;
@@ -155,7 +201,7 @@ GoRouter createRouter() {
           return AppRoutes.home;
         }
 
-        return null; 
+        return null;
       }
 
       return null;
@@ -168,7 +214,10 @@ GoRouter createRouter() {
           children: [
             const Icon(Icons.error, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text('404 - Page Not Found', style: Theme.of(context).textTheme.headlineMedium),
+            Text(
+              '404 - Page Not Found',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
             const SizedBox(height: 8),
             Text('Path: ${state.uri.path}'),
             ElevatedButton(

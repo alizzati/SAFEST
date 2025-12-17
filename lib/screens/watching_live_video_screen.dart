@@ -24,6 +24,7 @@ class WatchingLiveVideoScreen extends StatefulWidget {
 class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
   final Color _purpleColor = const Color(0xFF512DAB);
   final Color _redColor = const Color(0xFFC62828);
+  final MapController _mapController = MapController();
 
   LatLng? _currentLocation;
   String _currentAddress = 'Getting location...';
@@ -42,6 +43,7 @@ class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
   @override
   void initState() {
     super.initState();
+    _startDurationTimer();
 
     final liveUser = widget.liveData;
 
@@ -66,36 +68,84 @@ class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
       );
     }
 
-    _loadEmergencyContacts();
+    // _loadEmergencyContacts();
+    _countLiveUserEmergencyContacts();
+
     _listenLiveUserLocation();
   }
 
-  void _listenLiveUserLocation() {
+  void _countLiveUserEmergencyContacts() {
     final liveUser = widget.liveData;
-    final userId = liveUser?['uid'] ?? liveUser?['id']; // pastikan ada uid
 
-    if (userId != null) {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .snapshots()
-          .listen((snapshot) {
-            final data = snapshot.data();
-            if (data != null && data['position'] != null) {
-              final pos = data['position'];
-              setState(() {
-                if (pos is GeoPoint) {
-                  _currentLocation = LatLng(pos.latitude, pos.longitude);
-                } else if (pos is Map) {
-                  _currentLocation = LatLng(
-                    pos['latitude'] ?? 0.0,
-                    pos['longitude'] ?? 0.0,
-                  );
-                }
-              });
-            }
-          });
+    if (liveUser == null) {
+      debugPrint('❌ liveData NULL');
+      return;
     }
+
+    final contacts = liveUser['emergencyContacts'];
+
+    if (contacts is List) {
+      debugPrint('📡 LIVE USER emergencyContacts count: ${contacts.length}');
+
+      setState(() {
+        _numEmergencyContacts = contacts.length;
+      });
+    } else {
+      debugPrint('⚠️ emergencyContacts bukan List');
+      setState(() {
+        _numEmergencyContacts = 0;
+      });
+    }
+  }
+
+  void _startDurationTimer() {
+    _durationTimer?.cancel();
+
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!_isRecording) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _duration++;
+      });
+    });
+  }
+
+  void _listenLiveUserLocation() {
+    final data = widget.liveData;
+
+    if (data == null || data['customId'] == null) {
+      debugPrint('❌ liveData / customId NULL');
+      return;
+    }
+
+    final userId = data['customId'];
+
+    debugPrint('👂 Listening to LIVE user: $userId');
+
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .snapshots()
+        .listen((snapshot) {
+          if (!snapshot.exists) return;
+
+          final doc = snapshot.data();
+          if (doc == null || doc['position'] == null) return;
+
+          final GeoPoint pos = doc['position'];
+          final latLng = LatLng(pos.latitude, pos.longitude);
+
+          _mapController.move(latLng, _mapController.camera.zoom);
+
+          setState(() {
+            _currentLocation = latLng;
+          });
+
+          _getAddressFromNominatim(latLng.latitude, latLng.longitude);
+        });
   }
 
   Future<void> _getAddressFromNominatim(
@@ -285,7 +335,7 @@ class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
 
       final data = doc.data();
       if (data != null) {
-        final contacts = data['emergencyContacts'] as Map<String, dynamic>?;
+        final contacts = data['emergencyContacts'] as List<dynamic>?;
 
         debugPrint('Contacts raw: $contacts');
 
@@ -301,8 +351,8 @@ class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
   @override
   Widget build(BuildContext context) {
     final liveUser = widget.liveData;
-    final displayName = liveUser?['displayName'] ?? 'Unknown';
-    final phone = liveUser?['details']?['phone'] ?? 'N/A';
+    final displayName = liveUser?['firstName'] ?? 'Unknown';
+    final phone = liveUser?['phoneNumber'] ?? 'N/A';
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
@@ -330,7 +380,7 @@ class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Live Emergency Video',
+                    'Watching Live Video',
                     style: TextStyle(
                       fontSize: screenWidth * 0.05,
                       fontWeight: FontWeight.bold,
@@ -672,6 +722,7 @@ class _WatchingLiveVideoScreenState extends State<WatchingLiveVideoScreen> {
                           ),
                         )
                       : FlutterMap(
+                          mapController: _mapController,
                           options: MapOptions(
                             initialCenter: _currentLocation!,
                             initialZoom: 16,
